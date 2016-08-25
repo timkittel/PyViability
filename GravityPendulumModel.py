@@ -8,7 +8,7 @@ import numpy as np
 pi = np.pi
 
 
-def pendulum_rhs(theta_omega, t, a = None):  # raises an error a not set
+def pendulum_rhs(theta_omega, t=0, a = None):  # raises an error a not set
     theta, omega = theta_omega
     dtheta = omega
     domega = -np.sin(theta) - a

@@ -180,8 +180,11 @@ def generate_grid(boundaries, n0, grid_type, periodicity=[], verbosity=True):
         assert x_step == grid_prep_aperiodic[1], "bug?"
         MAX_NEIGHBOR_DISTANCE = 1.5 * x_step
         BOUNDS_EPSILON = 0.1 * x_step
+        ALL_NEIGHBORS_DISTANCE = 2 * np.sqrt(dim) * x_step + BOUNDS_EPSILON
+        # ALL_NEIGHBORS_DISTANCE = np.sqrt(dim) * x_step + BOUNDS_EPSILON
+        # STEPSIZE = ALL_NEIGHBORS_DISTANCE
         STEPSIZE = 1.5 * x_step
-        ALL_NEIGHBORS_DISTANCE = np.sqrt(dim) * x_step + BOUNDS_EPSILON
+        # STEPSIZE = 2.5 * x_step
 
     elif grid_type in ["simplex-based"]:
         if np.any(periodicity_bool[1:]):
@@ -231,7 +234,7 @@ def generate_grid(boundaries, n0, grid_type, periodicity=[], verbosity=True):
         MAX_NEIGHBOR_DISTANCE = 1.01 * x_step
         # x_step = Delta_0 # Delta_0 is side length of the simplices
         BOUNDS_EPSILON = 0.1 * x_step
-        STEPSIZE = 1.5 * x_step # seems to be correct
+        STEPSIZE = 2.5 * x_step # seems to be correct
         ALL_NEIGHBORS_DISTANCE = la.norm(np.sum(basis_vectors, axis=1)) * x_step + BOUNDS_EPSILON
 
     if verbosity:

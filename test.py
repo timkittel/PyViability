@@ -18,6 +18,7 @@ import myPhaseSpaceL as mPS
 
 import sys
 import time
+import argparse
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,15 +34,11 @@ def generate_example(default_rhss,
                      default_parameters=[],
                      management_parameters=[],
                      n0=80,
-                     grid_type="orthogonal",
                      periodicity=[],
-                     compute_eddies=False,
-                     backscaling=True,
-                     plot_points=True,
-                     plot_areas=False,
                      default_rhssPS=None,
                      management_rhssPS=None,
-                     out_of_bounds=True
+                     out_of_bounds=True,
+                     compute_eddies=False,
                      ):
 
     plotPS = lambda rhs, boundaries, style: mPS.plotPhaseSpace(rhs, [boundaries[0][0], boundaries[1][0], boundaries[0][1], boundaries[1][1]], colorbar=False, style=style)
@@ -57,15 +54,23 @@ def generate_example(default_rhss,
     if management_rhssPS is None:
         management_rhssPS = management_rhss
 
-    def example_function():
+    def example_function(example_name,
+                         grid_type="orthogonal",
+                         backscaling=True,
+                         plot_points=True,
+                         plot_areas=False,
+                         run_type="integration",
+                         save=False,
+            ):
         grid, scaling_factor,  offset, _ = viab.generate_grid(boundaries,
                                                         n0,
                                                         grid_type,
                                                         periodicity = periodicity) #noqa
         states = np.zeros(grid.shape[:-1], dtype=np.int16)
 
-        default_runs = [viab.make_run_function(nb.jit(rhs), helper.get_ordered_parameters(rhs, parameters), offset, scaling_factor) for rhs, parameters in zip(default_rhss, default_parameters)] #noqa
-        management_runs = [viab.make_run_function(nb.jit(rhs), helper.get_ordered_parameters(rhs, parameters), offset, scaling_factor) for rhs, parameters in zip(management_rhss, management_parameters)] #noqa
+        NB_NOPYTHON = True
+        default_runs = [viab.make_run_function(nb.jit(rhs, nopython=NB_NOPYTHON), helper.get_ordered_parameters(rhs, parameters), offset, scaling_factor, returning=run_type) for rhs, parameters in zip(default_rhss, default_parameters)] #noqa
+        management_runs = [viab.make_run_function(nb.jit(rhs, nopython=NB_NOPYTHON), helper.get_ordered_parameters(rhs, parameters), offset, scaling_factor, returning=run_type) for rhs, parameters in zip(management_rhss, management_parameters)] #noqa
 
         sunny = viab.scaled_to_one_sunny(sunny_fct, offset, scaling_factor)
 
@@ -92,7 +97,7 @@ def generate_example(default_rhss,
                 fig = plt.figure(figsize=(15, 15), tight_layout=True)
 
                 viab.plot_points(grid, states)
-                plt.gca().set_title('example: ' + example, fontsize=20)
+                plt.gca().set_title('example: ' + example_name, fontsize=20)
 
                 [plotPS(ft.partial(rhs, **parameters), boundaries, topo.styleDefault) #noqa
                     for rhs, parameters in zip(default_rhssPS, default_parameters)] #noqa
@@ -102,7 +107,7 @@ def generate_example(default_rhss,
                 plt.xlim(xlim)
                 plt.ylim(ylim)
 
-                if SAVE:
+                if ARGS.save:
                     fig.savefig(example + "-points.jpg")
 
 
@@ -110,7 +115,7 @@ def generate_example(default_rhss,
                 fig = plt.figure(figsize=(15, 15), tight_layout=True)
 
                 viab.plot_areas(grid, states)
-                plt.gca().set_title('example: ' + example, fontsize=20)
+                plt.gca().set_title('example: ' + example_name, fontsize=20)
 
                 [plotPS(ft.partial(rhs, **parameters), boundaries, topo.styleDefault) #noqa
                     for rhs, parameters in zip(default_rhssPS, default_parameters)] #noqa
@@ -120,7 +125,7 @@ def generate_example(default_rhss,
                 plt.xlim(xlim)
                 plt.ylim(ylim)
 
-                if SAVE:
+                if ARGS.save:
                     fig.savefig(example + "-areas.jpg")
 
         else:
@@ -136,7 +141,7 @@ def generate_example(default_rhss,
                 # figure already created above
 
                 viab.plot_points(grid, states)
-                plt.gca().set_title('example: ' + example, fontsize=20)
+                plt.gca().set_title('example: ' + example_name, fontsize=20)
 
                 [plotPS(rhs, [plot_x_limits, plot_y_limits], topo.styleDefault) for rhs, parameters in zip(default_PSs, default_parameters)]
                 [plotPS(rhs, [plot_x_limits, plot_y_limits], style) for rhs, parameters, style in zip(management_PSs, management_parameters, [topo.styleMod1, topo.styleMod2])] #noqa
@@ -146,7 +151,7 @@ def generate_example(default_rhss,
                 plt.xlim(plot_x_limits)
                 plt.ylim(plot_y_limits)
 
-                if SAVE:
+                if ARGS.save:
                     fig.savefig(example + "-points.jpg")
 
 
@@ -154,7 +159,7 @@ def generate_example(default_rhss,
                 fig = plt.figure(figsize=(15, 15), tight_layout=True)
 
                 viab.plot_areas(grid, states)
-                plt.gca().set_title('example: ' + example, fontsize=20)
+                plt.gca().set_title('example: ' + example_name, fontsize=20)
 
                 [plotPS(rhs, [plot_x_limits, plot_y_limits], topo.styleDefault) for rhs, parameters in zip(default_PSs, default_parameters)]
                 [plotPS(rhs, [plot_x_limits, plot_y_limits], style) for rhs, parameters, style in zip(management_PSs, management_parameters, [topo.styleMod1, topo.styleMod2])] #noqa
@@ -164,7 +169,7 @@ def generate_example(default_rhss,
                 plt.xlim(plot_x_limits)
                 plt.ylim(plot_y_limits)
 
-                if SAVE:
+                if ARGS.save:
                     fig.savefig(example + "-areas.jpg")
 
         num = states.size
@@ -180,18 +185,20 @@ EXAMPLES = {
                 generate_example([awm.AW_rescaled_rhs],
                                  [awm.AW_rescaled_rhs],
                                  awm.AW_rescaled_sunny,
-                                 [[0, awm.A_max],[1e-8, 1 - 1e-8]],
-                                 default_parameters=[{"beta":awm.beta_default}],
-                                 management_parameters=[{"beta":awm.beta_DG}],
+                                 [[1e-8, 1 - 1e-8],[1e-8, 1 - 1e-8]],
+                                 default_parameters=[{"beta":awm.beta_default, "theta":awm.theta_default}],
+                                 management_parameters=[{"beta":awm.beta_DG, "theta":awm.theta_default}],
+                                 out_of_bounds=False,
                                  ),
-            "aw-model-hex":
+            "aw-model-srm":
                 generate_example([awm.AW_rescaled_rhs],
                                  [awm.AW_rescaled_rhs],
                                  awm.AW_rescaled_sunny,
-                                 [[0, awm.A_max],[1e-8, 1 - 1e-8]],
-                                 default_parameters=[{"beta":awm.beta_default}],
-                                 management_parameters=[{"beta":awm.beta_DG}],
-                                 grid_type="simplex-based",
+                                 [[1e-8, 1 - 1e-8],[1e-8, 1 - 1e-8]],
+                                 default_parameters=[{"beta":awm.beta_default, "theta":awm.theta_default}],
+                                 management_parameters=[{"beta":awm.beta_default, "theta":awm.theta_SRM}],
+                                 out_of_bounds=False,
+                                 compute_eddies=True,
                                  ),
             "pendulum":
                 generate_example([gpm.pendulum_rhs],
@@ -203,50 +210,6 @@ EXAMPLES = {
                                  periodicity=[1, -1],
                                  compute_eddies=True,
                                  ),
-            "pendulum-no-backscaling":
-                generate_example([gpm.pendulum_rhs],
-                                 [gpm.pendulum_rhs],
-                                 gpm.pendulum_sunny,
-                                 [[0, 2*np.pi],[-2.2,1.2]],
-                                 default_parameters=[{"a":0.0}],
-                                 management_parameters=[{"a":0.6}],
-                                 periodicity=[1, -1],
-                                 compute_eddies=True,
-                                 backscaling=False,
-                                 ),
-            "pendulum-default-only":
-                generate_example([gpm.pendulum_rhs],
-                                 [],
-                                 gpm.pendulum_sunny,
-                                 [[0, 2*np.pi],[-2.2,1.2]],
-                                 default_parameters=[{"a":0.0}],
-                                 management_parameters=[],
-                                 periodicity=[1, -1],
-                                 compute_eddies=True,
-                                 ),
-            "pendulum-hex":
-                generate_example([gpm.pendulum_rhs],
-                                 [gpm.pendulum_rhs],
-                                 gpm.pendulum_sunny,
-                                 [[0, 2*np.pi],[-2.2,1.2]],
-                                 default_parameters=[{"a":0.0}],
-                                 management_parameters=[{"a":0.6}],
-                                 periodicity=[1, -1],
-                                 grid_type="simplex-based",
-                                 compute_eddies=True,
-                                 ),
-            "pendulum-hex-no-backscaling":
-                generate_example([gpm.pendulum_rhs],
-                                 [gpm.pendulum_rhs],
-                                 gpm.pendulum_sunny,
-                                 [[0, 2*np.pi],[-2.2,1.2]],
-                                 default_parameters=[{"a":0.0}],
-                                 management_parameters=[{"a":0.6}],
-                                 periodicity=[1, -1],
-                                 grid_type="simplex-based",
-                                 compute_eddies=True,
-                                 backscaling=False,
-                                 ),
             "plants":
                 generate_example([pm.plants_rhs],
                                  [pm.plants_rhs]*2,
@@ -254,16 +217,6 @@ EXAMPLES = {
                                  [[0, 1],[0, 1]],
                                  default_parameters=[{"ax":0.2, "ay":0.2, "prod":2}],
                                  management_parameters=[{"ax":0.1, "ay":0.1, "prod":2}, {"ax":2, "ay":0, "prod":2}],
-                                 out_of_bounds=False,
-                                 ),
-            "plants-hex":
-                generate_example([pm.plants_rhs],
-                                 [pm.plants_rhs]*2,
-                                 pm.plants_sunny,
-                                 [[0, 1],[0, 1]],
-                                 default_parameters=[{"ax":0.2, "ay":0.2, "prod":2}],
-                                 management_parameters=[{"ax":0.1, "ay":0.1, "prod":2}, {"ax":2, "ay":0, "prod":2}],
-                                 grid_type="simplex-based",
                                  out_of_bounds=False,
                                  ),
             "tech-change":
@@ -277,19 +230,6 @@ EXAMPLES = {
                                      dict(rvar = 1, pBmin = 0.15, pE = 0.3, delta = 0.025, smax = 0.3, sBmax = 0.5)],
                                  management_rhssPS = [tcm.techChange_rhsPS],
                                  ),
-            "tech-change-hex":
-                generate_example([tcm.techChange_rhs],
-                                 [tcm.techChange_rhs],
-                                 tcm.techChange_sunny,
-                                 [[0, 1], [0, 2]],
-                                 default_parameters=[
-                                     dict(rvar=1, pBmin=0.15, pE=0.3, delta=0.025, smax=0.3, sBmax=None)],
-                                 management_parameters=[
-                                     dict(rvar=1, pBmin=0.15, pE=0.3, delta=0.025, smax=0.3, sBmax=0.5)],
-                                 management_rhssPS=[tcm.techChange_rhsPS],
-                                 grid_type="simplex-based",
-                                 # backscaling=False,
-                                 ),
             "easter-a":
                 generate_example([prm.easter_rhs],
                                  [prm.easter_rhs],
@@ -301,42 +241,6 @@ EXAMPLES = {
                                      dict(phi = 4, r = 0.04, gamma = 2.8 * 10 ** (-6), delta = -0.1, kappa = 12000)],
                                  out_of_bounds=[[False, True], [False, True]],
                                  ),
-            "easter-a-hex":
-                generate_example([prm.easter_rhs],
-                                 [prm.easter_rhs],
-                                 ft.partial(prm.easter_sunny, xMinimal=1000, yMinimal=3000),
-                                 [[0, 35000], [0, 18000]],
-                                 default_parameters=[
-                                     dict(phi=4, r=0.04, gamma=4 * 10 ** (-6), delta=-0.1, kappa=12000)],
-                                 management_parameters=[
-                                     dict(phi=4, r=0.04, gamma=2.8 * 10 ** (-6), delta=-0.1, kappa=12000)],
-                                 grid_type="simplex-based",
-                                 ),
-            "easter-a-no-backscaling":
-                generate_example([prm.easter_rhs],
-                                 [prm.easter_rhs],
-                                 ft.partial(prm.easter_sunny, xMinimal=1000, yMinimal=3000),
-                                 [[0, 35000],[0, 18000]],
-                                 default_parameters=[
-                                     dict(phi = 4, r = 0.04, gamma = 4 * 10 ** (-6), delta = -0.1, kappa = 12000)],
-                                 management_parameters=[
-                                     dict(phi = 4, r = 0.04, gamma = 2.8 * 10 ** (-6), delta = -0.1, kappa = 12000)],
-                                 plot_areas=True,
-                                 backscaling=False,
-                                 ),
-            "easter-a-hex-no-backscaling":
-                generate_example([prm.easter_rhs],
-                                 [prm.easter_rhs],
-                                 ft.partial(prm.easter_sunny, xMinimal=1000, yMinimal=3000),
-                                 [[0, 35000], [0, 18000]],
-                                 default_parameters=[
-                                     dict(phi=4, r=0.04, gamma=4 * 10 ** (-6), delta=-0.1, kappa=12000)],
-                                 management_parameters=[
-                                     dict(phi=4, r=0.04, gamma=2.8 * 10 ** (-6), delta=-0.1, kappa=12000)],
-                                 grid_type="simplex-based",
-                                 plot_areas=True,
-                                 backscaling=False,
-                                 ),
             "easter-b":
                 generate_example([prm.easter_rhs],
                                  [prm.easter_rhs],
@@ -346,33 +250,7 @@ EXAMPLES = {
                                      dict(phi = 4, r = 0.04, gamma = 8 * 10 ** (-6), delta = -0.15, kappa = 6000)],
                                  management_parameters=[
                                      dict(phi = 4, r = 0.04, gamma = 13.6 * 10 ** (-6), delta = -0.15, kappa = 6000)],
-                                 # backscaling=False,
                                  ),
-            "easter-b-no-backscaling":
-                generate_example([prm.easter_rhs],
-                                 [prm.easter_rhs],
-                                 ft.partial(prm.easter_sunny, xMinimal=1200, yMinimal=2000),
-                                 [[0, 9000], [0, 9000]],
-                                 default_parameters=[
-                                     dict(phi = 4, r = 0.04, gamma = 8 * 10 ** (-6), delta = -0.15, kappa = 6000)],
-                                 management_parameters=[
-                                     dict(phi = 4, r = 0.04, gamma = 13.6 * 10 ** (-6), delta = -0.15, kappa = 6000)],
-                                 plot_areas=True,
-                                 backscaling=False,
-                                 ),
-            "easter-b-hex":
-                generate_example([prm.easter_rhs],
-                                 [prm.easter_rhs],
-                                 ft.partial(prm.easter_sunny, xMinimal=1200, yMinimal=2000),
-                                 [[0, 9000], [0, 9000]],
-                                 default_parameters=[
-                                     dict(phi=4, r=0.04, gamma=8 * 10 ** (-6), delta=-0.15, kappa=6000)],
-                                 management_parameters=[
-                                     dict(phi=4, r=0.04, gamma=13.6 * 10 ** (-6), delta=-0.15, kappa=6000)],
-                                 grid_type="simplex-based",
-                                 # backscaling=False,
-                                 ),
-
             "easter-c":
                 generate_example([prm.easter_rhs],
                                 [prm.easter_rhs],
@@ -384,18 +262,6 @@ EXAMPLES = {
                                     dict(phi = 4, r = 0.04, gamma = 16 * 10 ** (-6), delta = -0.15, kappa = 6000)],
                                 compute_eddies=True,
                                 ),
-            "easter-c-hex":
-                generate_example([prm.easter_rhs],
-                                 [prm.easter_rhs],
-                                 ft.partial(prm.easter_sunny, xMinimal=4000, yMinimal=3000),
-                                 [[0, 9000],[0, 9000]],
-                                 default_parameters=[
-                                     dict(phi = 4, r = 0.04, gamma = 8 * 10 ** (-6), delta = -0.15, kappa = 6000)],
-                                 management_parameters=[
-                                     dict(phi = 4, r = 0.04, gamma = 16 * 10 ** (-6), delta = -0.15, kappa = 6000)],
-                                 compute_eddies=True,
-                                 grid_type="simplex-based"
-                                 ),
             "easter-d":
                 generate_example([prm.easter_rhs],
                                  [prm.easter_rhs],
@@ -405,17 +271,6 @@ EXAMPLES = {
                                      dict(phi = 4, r = 0.04, gamma = 8 * 10 ** (-6), delta = -0.15, kappa = 6000)],
                                  management_parameters=[
                                      dict(phi = 4, r = 0.04, gamma = 11.2 * 10 ** (-6), delta = -0.15, kappa = 6000)],
-                                 ),
-            "easter-d-hex":
-                generate_example([prm.easter_rhs],
-                                 [prm.easter_rhs],
-                                 ft.partial(prm.easter_sunny, xMinimal=4000, yMinimal=3000),
-                                 [[0, 9000], [0, 9000]],
-                                 default_parameters=[
-                                     dict(phi=4, r=0.04, gamma=8 * 10 ** (-6), delta=-0.15, kappa=6000)],
-                                 management_parameters=[
-                                     dict(phi=4, r=0.04, gamma=11.2 * 10 ** (-6), delta=-0.15, kappa=6000)],
-                                 grid_type="simplex-based"
                                  ),
             "consum":
                 generate_example([],
@@ -427,613 +282,61 @@ EXAMPLES = {
                                                        dict(u = 0.5)],
                                  management_rhssPS = [cm.consum_rhsPS]*2,
                                  ),
-            "consum-no-backscaling":
-                generate_example([],
-                                 [cm.consum_rhs]*2,
-                                 cm.consum_sunny,
-                                 [[0, 2], [0, 3]],
-                                 default_parameters = [],
-                                 management_parameters = [dict(u = -0.5),
-                                                       dict(u = 0.5)],
-                                 management_rhssPS = [cm.consum_rhsPS]*2,
-                                 backscaling=False,
-                                 ),
-            "consum-hex":
-                generate_example([],
-                                 [cm.consum_rhs] * 2,
-                                 cm.consum_sunny,
-                                 [[0, 2], [0, 3]],
-                                 default_parameters=[],
-                                 management_parameters=[dict(u=-0.5),
-                                                        dict(u=0.5)],
-                                 management_rhssPS=[cm.consum_rhsPS] * 2,
-                                 grid_type="simplex-based"
-                                 ),
 
 }
 
+
 AVAILABLE_EXAMPLES = sorted(EXAMPLES)
 
-SPECIAL_KEYWORDS = ["all", "help", "save"]
 
-## check that the special input keywords are not example names
-assert not set(SPECIAL_KEYWORDS).issubset(AVAILABLE_EXAMPLES)
+assert not "all" in AVAILABLE_EXAMPLES
+MODEL_CHOICES = ["all"] + AVAILABLE_EXAMPLES
+GRID_CHOICES = ["orthogonal", "simplex-based"]
+PLOT_CHOICES = ["points", "areas"]
+
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser(description="test script for the standard examples")
 
-    args = sys.argv[1:]
+    parser.add_argument("models", metavar="model", nargs="+",
+                        choices=MODEL_CHOICES,
+                        help="the model to be run or all; space separated list\n"
+                        "allowed values are: " + ", ".join(MODEL_CHOICES))
 
-    if "help" in args or not args:
-        print("available examples are: " + " ".join(AVAILABLE_EXAMPLES))
-        print("special input keywords: " + " ".join(SPECIAL_KEYWORDS))
-        sys.exit(0)
+    parser.add_argument("-b", "--no-backscaling", action="store_false", dest="backscaling",
+                        help="omit backscaling after the topology/viability computation")
+    parser.add_argument("-f", "--force", action="store_true",
+                        help="overwrite existing files")
+    parser.add_argument("-g", "--grid", choices=GRID_CHOICES, default=GRID_CHOICES[0],
+                        help="grid type")
+    parser.add_argument("-i", "--integrate", action="store_const", dest="run_type",
+                        const="integration", default="linear",
+                        help="integrate instead of using linear approximation")
+    parser.add_argument("-p", "--plot", metavar="plot-style", nargs="+", choices=PLOT_CHOICES, default=PLOT_CHOICES[:1],
+                        help="how to plot the results: "+", ".join(PLOT_CHOICES))
+    parser.add_argument("-r", "--remember", action="store_true",
+                        help="remember already calculated values in a dict" \
+                        " (might be slow for a large grids)")
+    parser.add_argument("-s", "--save", metavar="output-file", nargs="?", default="",
+                        help="save the picture; if no 'output-file' is given, a name is generated")
 
-    SAVE = ("save" in args)
-    if SAVE:
-        try:
-            args.remove("save")
-        except ValueError:
-            pass
 
-    if "all" in args:
-        args = AVAILABLE_EXAMPLES
+    ARGS = parser.parse_args()
+    print(ARGS)
 
-    assert set(args).issubset(AVAILABLE_EXAMPLES), "You mentioned examples " \
-        "that I don't know: " + \
-        " ".join(set(args).difference(AVAILABLE_EXAMPLES))
-
-    for example in args:
+    for model in ARGS.models:
         print()
         print("#"*40)
-        print("computing example: " + example)
+        print("computing example: " + model)
         print("#"*40)
-        EXAMPLES[example]()
-
-    plt.show()
-    assert False
-
-    if "colortest" in args:
-        fig = plt.figure(figsize=(15, 15), tight_layout = True)
-        ax = fig.add_subplot(111)
-        xmin, xmax = 0, 1
-
-        x_num = 80
-        x_len = xmax - xmin
-        x_step = x_len / x_num
-        viab.x_step=x_step
-        x_half_step = x_step / 2
-        x = np.linspace(xmin ,xmax, x_num + 1)
-        x = (x[:-1] + x[1:]) / 2
-        y = np.linspace(xmin, xmax, x_num + 1)
-        y = (y[:-1] + y[1:]) / 2
-        xy = np.asarray(np.meshgrid(x, y))
-        del x, y
-        xy = np.rollaxis(xy, 0, 3)
-        state = np.zeros(xy.shape[:-1])
-        state[:] = 1
-
-        viab.plot_areas(xy, state)
-
-    if "techChange" in args:
-        # boundaries of PhaseSpace
-        boundaries = [0, 0, 1, 2]
-        xmin, ymin, xmax, ymax = boundaries
-
-        fig2 = plt.figure(figsize=(15, 15))
-        ax = fig2.add_subplot(111)
-
-        # default values
-        tcm.rvar = 1
-        tcm.pBmin = 0.15
-        tcm.pE = 0.3
-        tcm.sigmaA = 1.05
-        tcm.uDedge = 0.325
-        tcm.pA = 0.5
-        tcm.delta = 0.025
-        tcm.smax = 0.3
-        tcm.sBmax = 0.5
-
-        # normalized grid
-        xy, scalingfactor, offset, x_step = viab.normalized_grid(boundaries, 80)
-
-        # Integration length for odeint
-        viab.x_step = x_step
-        viab.STEPSIZE = 1.5 * x_step
-
-        # different instances of the model
-        moddefTC = tcm.TechChangeXY('default')
-        mod2TC = tcm.TechChangeXY('two')
-
-        defaultTC_run = viab.make_run_function(moddefTC._rhs_fast, moddefTC._odeint_params, offset, scalingfactor)
-        management2TC_run = viab.make_run_function(mod2TC._rhs_fast, mod2TC._odeint_params, offset, scalingfactor)
-
-        # # Example: Plotting the scaled right-hand-side
-        # defaultTC_rhs_test = viab.make_run_function(moddefTC.rhs_PS, moddefTC._odeint_params, offset, scalingfactor, returning = "PS_plt_scaled_rhs")
-        # mPS.plotPhaseSpace(defaultTC_rhs_test, [0, 0, 1, 1], colorbar=False, style=topo.styleDefault)
-        #
-        # mod2TC_rhs_test = viab.make_run_function(mod2TC.rhs_PS, mod2TC._odeint_params, offset, scalingfactor,
-        #                                             returning="PS_plt_scaled_rhs")
-        # mPS.plotPhaseSpace(mod2TC_rhs_test, [0, 0, 1, 1], colorbar=False, style=topo.styleMod1)
-
-        # Generating states for grid points
-        state = np.zeros(xy.shape[:-1])
-
-        # Some initial states for 80*80 grid to avoid runtime warnings
-        init_states = [(79*7, -1), (79*8, -1), (79*9, -1), (559, -1), (639
-                                                                       , -1)]
-        for i in range(len(init_states)):
-            state[init_states[i][0]] = init_states[i][1]
-
-        # scaled sunny-function
-        sunny = viab.scaled_to_one_sunny(tcm.is_sunnyTC, offset, scalingfactor)
-
-        start_time = time.time()
-
-        # topology classification via viability algorithm
-        viab.topology_classification(xy, state, [defaultTC_run], [management2TC_run], sunny)
-
-        time_diff = time.time() - start_time
-        print(time_diff)
-
-        # backscaling grid
-        # xy = viab.backscaling_grid(xy, scalingfactor, offset)
-
-        # Plotting:
-        viab.plot_points(xy, state)
-
-        # moddefTC.plotPhaseSpace(boundaries, topo.styleDefault)
-        # mod2TC.plotPhaseSpace(boundaries, topo.styleMod1)
-#
-        # plt.xlim([xmin, xmax])
-        # plt.ylim([ymin, ymax])
-
-        plt.xlabel("$u_B$")
-        plt.ylabel("$p_B$")
-
-    if "PuR_Plot_a" in args:
-
-        boundaries = [0, 0, 35000, 18000]
-        xmin, ymin, xmax, ymax = boundaries
-
-        fig2 = plt.figure(figsize=(15, 15))
-        ax = fig2.add_subplot(111)
-
-        # default values for sunny region
-        prm.xMinimal = 1000
-        prm.yMinimal = 3000
-
-        # generating grid and step size values
-        xy, scalingfactor, offset, x_step = viab.normalized_grid(boundaries, 80)
-        viab.x_step = x_step
-        viab.STEPSIZE = 1.5 * x_step
-
-        # different instances of the model
-        moddefPuR = prm.PopAndRes(phi = 4, r = 0.04, gamma = 4 * 10 ** (-6), delta = -0.1, kappa = 12000, comment="default")
-        mod1PuR = prm.PopAndRes(phi = 4, r = 0.04, gamma = 2.8 * 10 ** (-6), delta = -0.1, kappa = 12000, comment="management 1")
-
-        defaultPuR_run = viab.make_run_function(moddefPuR._rhs_fast, moddefPuR._odeint_params, offset, scalingfactor)
-        management1PuR_run = viab.make_run_function(mod1PuR._rhs_fast, mod1PuR._odeint_params, offset, scalingfactor)
-
-        default_evols_list = [defaultPuR_run]
-
-        # set states and scale sunny region
-        states = np.zeros(xy.shape[:-1])
-        sunny = viab.scaled_to_one_sunny(prm.is_sunnyPuR, offset, scalingfactor)
-
-        # Viability calculation
-        start_time = time.time()
-
-        viab.topology_classification(xy, states, [defaultPuR_run], [management1PuR_run], sunny)
-
-        time_diff = time.time() - start_time
-        print(time_diff)
-
-        # plotting
-        xy = viab.backscaling_grid(xy, scalingfactor, offset)
-
-        viab.plot_points(xy, states)
-
-        moddefPuR.plotPhaseSpace(boundaries, topo.styleDefault)
-        mod1PuR.plotPhaseSpace(boundaries, topo.styleMod1)
-
-        plt.xlim([xmin, xmax])
-        plt.ylim([ymin, ymax])
-
-    if "PuR_Plot_b" in args:
-
-        boundaries = [0, 0, 9000, 9000]
-        xmin, ymin, xmax, ymax = boundaries
-
-        # default values for sunny region
-        prm.xMinimal = 1200
-        prm.yMinimal = 2000
-
-        # generating grid and step size values
-        xy, scalingfactor, offset, x_step = viab.normalized_grid(boundaries, 80)
-        viab.x_step = x_step
-        viab.STEPSIZE = 1.5 * x_step
-
-        # different instances of the model
-        moddefPuR = prm.PopAndRes(phi = 4, r = 0.04, gamma = 8 * 10 ** (-6), delta = -0.15, kappa = 6000, comment="default")
-        mod1PuR = prm.PopAndRes(phi = 4, r = 0.04, gamma = 13.6 * 10 ** (-6), delta = -0.15, kappa = 6000, comment="management 1")
-
-        defaultPuR_run = viab.make_run_function(moddefPuR._rhs_fast, moddefPuR._odeint_params, offset, scalingfactor)
-        management1PuR_run = viab.make_run_function(mod1PuR._rhs_fast, mod1PuR._odeint_params, offset, scalingfactor)
-
-        default_evols_list = [defaultPuR_run]
-
-        # Some initial states for 80*80 grid to avoid runtime warnings
-        states = np.zeros(xy.shape[:-1])
-        init_states = [(1934, -6), (3289, -7)]
-        for i in range(len(init_states)):
-            states[init_states[i][0]] = init_states[i][1]
-
-        # scaled sunny function
-        sunny = viab.scaled_to_one_sunny(prm.is_sunnyPuR, offset, scalingfactor)
-
-        # viability calculation
-        start_time = time.time()
-
-        viab.topology_classification(xy, states, [defaultPuR_run], [management1PuR_run], sunny)
-
-        time_diff = time.time() - start_time
-        print(time_diff)
-
-        xy = viab.backscaling_grid(xy, scalingfactor, offset)
-
-        # plotting
-        viab.plot_points(xy, states)
-
-        moddefPuR.plotPhaseSpace(boundaries, topo.styleDefault)
-        mod1PuR.plotPhaseSpace(boundaries, topo.styleMod1)
-
-        plt.xlim([xmin, xmax])
-        plt.ylim([ymin, ymax])
-
-    if "PuR_Plot_c" in args:
-
-        boundaries = [0, 0, 9000, 9000]
-        xmin, ymin, xmax, ymax = boundaries
-
-        # default values for sunny region
-        prm.xMinimal = 4000
-        prm.yMinimal = 3000
-
-        # generating grid and step size values
-        xy, scalingfactor, offset, x_step = viab.normalized_grid(boundaries, 80)
-        viab.x_step = x_step
-        viab.STEPSIZE = 1.5 * x_step
-
-        # different instances of the model
-        moddefPuR = prm.PopAndRes(phi = 4, r = 0.04, gamma = 8 * 10 ** (-6), delta = -0.15, kappa = 6000, comment="default")
-        mod1PuR = prm.PopAndRes(phi = 4, r = 0.04, gamma = 16 * 10 ** (-6), delta = -0.15, kappa = 6000, comment="management 1")
-
-        defaultPuR_run = viab.make_run_function(moddefPuR._rhs_fast, moddefPuR._odeint_params, offset, scalingfactor, remember = True)
-        management1PuR_run = viab.make_run_function(mod1PuR._rhs_fast, mod1PuR._odeint_params, offset, scalingfactor, remember = True)
-
-        default_evols_list = [defaultPuR_run]
-
-        # Some initial states for 80*80 grid to avoid runtime warnings
-        states = np.zeros(xy.shape[:-1])
-
-        init_states = [(1613, -10), (3289, -10)]
-        for i in range(len(init_states)):
-           states[init_states[i][0]] = init_states[i][1]
-
-        # scaled sunny function
-        sunny = viab.scaled_to_one_sunny(prm.is_sunnyPuR, offset, scalingfactor)
-
-        # viability calculation
-        start_time = time.time()
-
-        viab.topology_classification(xy, states, [defaultPuR_run], [management1PuR_run], sunny)
-
-        time_diff = time.time() - start_time
-        print(time_diff)
-
-        xy = viab.backscaling_grid(xy, scalingfactor, offset)
-
-        # plotting
-        viab.plot_points(xy, states)
-
-        moddefPuR.plotPhaseSpace(boundaries, topo.styleDefault)
-        mod1PuR.plotPhaseSpace(boundaries, topo.styleMod1)
-
-        plt.xlim([xmin, xmax])
-        plt.ylim([ymin, ymax])
-
-    if "PuR_Plot_d" in args:
-
-        boundaries = [0, 0, 9000, 9000]
-        xmin, ymin, xmax, ymax = boundaries
-
-        # default values for sunny region
-        prm.xMinimal = 4000
-        prm.yMinimal = 3000
-
-        # generating grid and step size values
-        xy, scalingfactor, offset, x_step = viab.normalized_grid(boundaries, 80)
-        viab.x_step = x_step
-        viab.STEPSIZE = 1.5 * x_step
-
-        # different instances of the model
-        moddefPuR = prm.PopAndRes(phi = 4, r = 0.04, gamma = 8 * 10 ** (-6), delta = -0.15, kappa = 6000, comment="default")
-        mod1PuR = prm.PopAndRes(phi = 4, r = 0.04, gamma = 11.2 * 10 ** (-6), delta = -0.15, kappa = 6000, comment="management 1")
-
-        defaultPuR_run = viab.make_run_function(moddefPuR._rhs_fast, moddefPuR._odeint_params, offset, scalingfactor)
-        management1PuR_run = viab.make_run_function(mod1PuR._rhs_fast, mod1PuR._odeint_params, offset, scalingfactor)
-
-        default_evols_list = [defaultPuR_run]
-
-        # Some initial states for 80*80 grid to avoid runtime warnings
-        states = np.zeros(xy.shape[:-1])
-
-        init_states = [(2334, -10), (3289, -10)]
-        for i in range(len(init_states)):
-            states[init_states[i][0]] = init_states[i][1]
-
-        # scaled sunny function
-        sunny = viab.scaled_to_one_sunny(prm.is_sunnyPuR, offset, scalingfactor)
-
-        # viability calculation
-        start_time = time.time()
-
-        viab.topology_classification(xy, states, [defaultPuR_run], [management1PuR_run], sunny)
-
-        time_diff = time.time() - start_time
-        print(time_diff)
-
-        xy = viab.backscaling_grid(xy, scalingfactor, offset)
-
-        # plotting
-        viab.plot_points(xy, states)
-
-        moddefPuR.plotPhaseSpace(boundaries, topo.styleDefault)
-        mod1PuR.plotPhaseSpace(boundaries, topo.styleMod1)
-
-        plt.xlim([xmin, xmax])
-        plt.ylim([ymin, ymax])
-
-    if "pendulum" in args:
-        # test gravity pendulum
-        xmin, xmax = 0, 2 * np.pi
-        ymin, ymax = -2.2, 1.2
-        boundaries = [[xmin, xmax], [ymin, ymax]]
-        PSboundaries = [xmin, ymin, xmax, ymax]
-        periodicity = [1, -1] # on the x-axis but not the y-axis
-
-        # default values
-        a = 0.6
-        gpm.l = 0.5
-
-        # generating grid and step size values
-        # xy, scalingfactor,  offset, x_step = viab.normalized_grid(boundaries, 80)
-        xy, scalingfactor,  offset, x_step = viab.generate_grid(boundaries, 80, "orthogonal", periodicity = periodicity)
-        viab.x_step = x_step
-        viab.STEPSIZE = 1.5 * x_step
-
-        # different instances of the model
-        moddef = gpm.GravPend(a=0, comment="default")
-        mod1 = gpm.GravPend(a=a, comment="management 1")
-
-        default_run = viab.make_run_function(moddef._rhs_fast, moddef._odeint_params, offset, scalingfactor)
-        management1_run = viab.make_run_function(mod1._rhs_fast, mod1._odeint_params, offset, scalingfactor)
-
-        # states before calculation and scaled sunny function
-        state = np.zeros(xy.shape[:-1])
-        sunny = viab.scaled_to_one_sunny(gpm.is_sunnyGPM, offset, scalingfactor)
-
-        # viability calculation
-        start_time = time.time()
-
-        viab.topology_classification(xy, state, [default_run], [management1_run], sunny, periodic_boundaries = periodicity)
-
-        time_diff = time.time() - start_time
-        print(time_diff)
-
-        xy = viab.backscaling_grid(xy, scalingfactor, offset)
-
-        # plotting
-        viab.plot_points(xy, state)
-
-        moddef.plotPhaseSpace(PSboundaries, topo.styleDefault)
-        mod1.plotPhaseSpace(PSboundaries, topo.styleMod2)
-
-        plt.xlim([xmin, xmax])
-        plt.ylim([ymin, ymax])
-
-
-        fig = plt.figure(figsize=(15, 15), tight_layout=True)
-
-        viab.plot_areas(xy, state)
-
-        moddef.plotPhaseSpace(PSboundaries, topo.styleDefault)
-        mod1.plotPhaseSpace(PSboundaries, topo.styleMod2)
-
-        plt.xlim([xmin, xmax])
-        plt.ylim([ymin, ymax])
-
-    if "pendulum-hex" in args:
-        # test gravity pendulum
-        xmin, xmax = 0, 2 * np.pi
-        ymin, ymax = -2.2, 1.2
-        boundaries = [[xmin, xmax], [ymin, ymax]]
-        PSboundaries = [xmin, ymin, xmax, ymax]
-
-        # default values
-        a = 0.6
-        gpm.l = 0.5
-
-        # generating grid and step size values
-        xy, scalingfactor,  offset, x_step = viab.hexGrid(boundaries, 80, verb = True)
-
-        # states before calculation and scaled sunny function
-        state = np.zeros(xy.shape[:-1])
-        sunny = viab.scaled_to_one_sunny(gpm.is_sunnyGPM, offset, scalingfactor)
-
-        # different instances of the model
-        moddef = gpm.GravPend(a=0, comment="default")
-        mod1 = gpm.GravPend(a=a, comment="management 1")
-
-        default_run = viab.make_run_function(moddef._rhs_fast, moddef._odeint_params, offset, scalingfactor)
-        default_PS = viab.make_run_function(moddef._rhs_PS, moddef._odeint_params, offset, scalingfactor, returning = "PS")
-        management1_run = viab.make_run_function(mod1._rhs_fast, mod1._odeint_params, offset, scalingfactor)
-        management1_PS = viab.make_run_function(mod1._rhs_PS, mod1._odeint_params, offset, scalingfactor, returning = "PS")
-
-        # create the figure already so it can be used for the verbosity plots
-        fig = plt.figure(figsize=(15, 15), tight_layout=True)
-        # viability calculation
-        start_time = time.time()
-
-        viab.topology_classification(xy, state, [default_run], [management1_run], sunny, periodic_boundaries = np.array([1, -1]))
-
-        time_diff = time.time() - start_time
-        print(time_diff)
-
-        # backscaling
-        xy = viab.backscaling_grid(xy, scalingfactor, offset)
-
-        # plotting
-        viab.plot_points(xy, state)
-        # mPS.plotPhaseSpace(default_PS, [0, 0, 1, 1], style = topo.styleDefault, colorbar = False)
-        # mPS.plotPhaseSpace(management1_PS, [0, 0, 1, 1], style = topo.styleMod1, colorbar = False)
-        moddef.plotPhaseSpace(PSboundaries, topo.styleDefault)
-        mod1.plotPhaseSpace(PSboundaries, topo.styleMod2)
-        # plt.axes().set_aspect("equal")
-        plt.xlim([xmin, xmax])
-        plt.ylim([ymin, ymax])
-
-        fig = plt.figure(figsize=(15, 15), tight_layout=True)
-        viab.plot_areas(xy, state)
-        # plt.axes().set_aspect("equal")
-        plt.xlim([xmin, xmax])
-        plt.ylim([ymin, ymax])
-
-    if "eddies" in args:
-        # test ediies calculation
-        xmin, xmax = -1, 1
-        ymin, ymax = -1, 1
-        boundaries = [[xmin, xmax], [ymin, ymax]]
-        PSboundaries = [xmin, ymin, xmax, ymax]
-
-        def rhs(xy, t):
-            x, y = xy
-            return [-y, x]
-        def rhsPS(xy, t):
-            print(xy.shape)
-            ret = np.zeros_like(xy)
-            ret[0] = - xy[1]
-            ret[1] =   xy[0]
-            return ret
-        def sunny(xy):
-            return xy[:,0] > 0
-
-
-        # generating grid and step size values
-        # xy, scalingfactor,  offset, x_step = viab.hexGrid(boundaries, 40, verb = True)
-        # viab.STEPSIZE = 1 * x_step
-        xy, scalingfactor,  offset, x_step = viab.normalized_grid(PSboundaries, 40)
-        viab.STEPSIZE = 1.5 * x_step
-
-        # states before calculation and scaled sunny function
-        state = np.zeros(xy.shape[:-1])
-        sunny = viab.scaled_to_one_sunny(sunny, offset, scalingfactor)
-
-        # create correctly scaled evolution functions
-        default_run = viab.make_run_function(rhs, (), offset, scalingfactor, remember = True)
-        default_PS = viab.make_run_function(rhsPS, (), offset, scalingfactor, returning = "PS")
-
-        # create the figure already so it can be used for the verbosity plots
-        fig = plt.figure(figsize=(15, 15), tight_layout=True)
-
-        # viability calculation
-        start_time = time.time()
-
-        viab.topology_classification(xy, state, [default_run], [], sunny,
-                                     compute_eddies = True)
-
-        time_diff = time.time() - start_time
-        print(time_diff)
-
-        # backscaling
-        xy = viab.backscaling_grid(xy, scalingfactor, offset)
-
-        # plotting
-        viab.plot_points(xy, state)
-        mPS.plotPhaseSpace(rhsPS, PSboundaries, style = topo.styleDefault, colorbar = False)
-        # mPS.plotPhaseSpace(default_PS, [0, 0, 1, 1], style = topo.styleDefault, colorbar = False)
-        plt.axes().set_aspect("equal")
-        plt.xlim([xmin, xmax])
-        plt.ylim([ymin, ymax])
-
-        fig = plt.figure(figsize=(15, 15), tight_layout=True)
-        viab.plot_areas(xy, state)
-        plt.axes().set_aspect("equal")
-        plt.xlim([xmin, xmax])
-        plt.ylim([ymin, ymax])
-
-    if "eddies-hex" in args:
-        # test ediies calculation
-        xmin, xmax = -1, 1
-        ymin, ymax = -1, 1
-        boundaries = [[xmin, xmax], [ymin, ymax]]
-        PSboundaries = [xmin, ymin, xmax, ymax]
-
-        def rhs(xy, t):
-            x, y = xy
-            return [-y, x]
-        def rhsPS(xy, t):
-            ret = np.zeros_like(xy)
-            ret[0] = - xy[1]
-            ret[1] =   xy[0]
-            return ret
-        def sunny(xy):
-            return xy[:,0] > 0
-
-
-        # generating grid and step size values
-        xy, scalingfactor,  offset, x_step = viab.hexGrid(boundaries, 40, verb = True)
-        viab.STEPSIZE = 1 * x_step
-        # xy, scalingfactor,  offset, x_step = viab.normalized_grid(PSboundaries, 40)
-        # viab.STEPSIZE = 1.5 * x_step
-
-        # states before calculation and scaled sunny function
-        state = np.zeros(xy.shape[:-1])
-        sunny = viab.scaled_to_one_sunny(sunny, offset, scalingfactor)
-
-        # create correctly scaled evolution functions
-        default_run = viab.make_run_function(rhs, (), offset, scalingfactor, remember = True)
-        default_PS = viab.make_run_function(rhsPS, (), offset, scalingfactor, returning = "PS")
-
-        # create the figure already so it can be used for the verbosity plots
-        fig = plt.figure(figsize=(15, 15), tight_layout=True)
-
-        # viability calculation
-        start_time = time.time()
-
-        viab.topology_classification(xy, state, [default_run], [], sunny,
-                                     compute_eddies = True)
-
-        time_diff = time.time() - start_time
-        print(time_diff)
-
-        # backscaling
-        xy = viab.backscaling_grid(xy, scalingfactor, offset)
-
-        # plotting
-        viab.plot_points(xy, state)
-        mPS.plotPhaseSpace(rhsPS, PSboundaries, style = topo.styleDefault, colorbar = False)
-        # mPS.plotPhaseSpace(default_PS, [0, 0, 1, 1], style = topo.styleDefault, colorbar = False)
-        plt.axes().set_aspect("equal")
-        plt.xlim([xmin, xmax])
-        plt.ylim([ymin, ymax])
-
-        fig = plt.figure(figsize=(15, 15), tight_layout=True)
-        viab.plot_areas(xy, state)
-        plt.axes().set_aspect("equal")
-        plt.xlim([xmin, xmax])
-        plt.ylim([ymin, ymax])
+        EXAMPLES[model](model,
+                    grid_type=ARGS.grid,
+                    backscaling=ARGS.backscaling,
+                    plot_points=("points" in ARGS.plot),
+                    plot_areas=("areas" in ARGS.plot),
+                    run_type=ARGS.run_type,
+        )
 
     plt.show()
 
