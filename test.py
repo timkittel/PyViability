@@ -27,6 +27,15 @@ import functools as ft
 import numba as nb
 
 
+def save_figure(filename, fig=None):
+    if fig is None:
+        fig = plt.gcf()
+    print("saveing to {!r} ... ".format(filename), end="", flush=True)
+    fig.savefig(filename)
+    print("done")
+
+
+
 def generate_example(default_rhss,
                      management_rhss,
                      sunny_fct,
@@ -57,18 +66,21 @@ def generate_example(default_rhss,
     def example_function(example_name,
                          grid_type="orthogonal",
                          backscaling=True,
-                         plot_points=True,
-                         plot_areas=False,
+                         plotting="points",
                          run_type="integration",
-                         save=False,
+                         save_to="",
             ):
+
+        plot_points = (plotting == "points")
+        plot_areas = (plotting == "areas")
+
         grid, scaling_factor,  offset, _ = viab.generate_grid(boundaries,
                                                         n0,
                                                         grid_type,
                                                         periodicity = periodicity) #noqa
         states = np.zeros(grid.shape[:-1], dtype=np.int16)
 
-        NB_NOPYTHON = True
+        NB_NOPYTHON = False
         default_runs = [viab.make_run_function(nb.jit(rhs, nopython=NB_NOPYTHON), helper.get_ordered_parameters(rhs, parameters), offset, scaling_factor, returning=run_type) for rhs, parameters in zip(default_rhss, default_parameters)] #noqa
         management_runs = [viab.make_run_function(nb.jit(rhs, nopython=NB_NOPYTHON), helper.get_ordered_parameters(rhs, parameters), offset, scaling_factor, returning=run_type) for rhs, parameters in zip(management_rhss, management_parameters)] #noqa
 
@@ -107,8 +119,8 @@ def generate_example(default_rhss,
                 plt.xlim(xlim)
                 plt.ylim(ylim)
 
-                if ARGS.save:
-                    fig.savefig(example + "-points.jpg")
+                if save_to:
+                    save_figure(save_to)
 
 
             if plot_areas:
@@ -125,8 +137,8 @@ def generate_example(default_rhss,
                 plt.xlim(xlim)
                 plt.ylim(ylim)
 
-                if ARGS.save:
-                    fig.savefig(example + "-areas.jpg")
+                if save_to:
+                    save_figure(save_to)
 
         else:
             plot_x_limits = [0, 1.5 if grid_type == "simplex-based" else 1]
@@ -151,8 +163,8 @@ def generate_example(default_rhss,
                 plt.xlim(plot_x_limits)
                 plt.ylim(plot_y_limits)
 
-                if ARGS.save:
-                    fig.savefig(example + "-points.jpg")
+                if save_to:
+                    save_figure(save_to)
 
 
             if plot_areas:
@@ -169,13 +181,11 @@ def generate_example(default_rhss,
                 plt.xlim(plot_x_limits)
                 plt.ylim(plot_y_limits)
 
-                if ARGS.save:
-                    fig.savefig(example + "-areas.jpg")
+                if save_to:
+                    save_figure(save_to)
 
-        num = states.size
-        num_len = len(str(num))
-        for region in ["UNSET", "SHELTER", "GLADE", "LAKE", "SUNNY_UP", "DARK_UP", "BACKWATERS", "SUNNY_DOWN", "DARK_DOWN", "SUNNY_EDDIES", "DARK_EDDIES", "SUNNY_ABYSS", "DARK_ABYSS", "TRENCH"]:
-            print(("{:<15}: {:>6.2f}%").format(region, np.count_nonzero(states == getattr(viab, region)) / num * 100))
+        print()
+        viab.print_evaluation(states)
 
     return example_function
 
@@ -313,8 +323,8 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--integrate", action="store_const", dest="run_type",
                         const="integration", default="linear",
                         help="integrate instead of using linear approximation")
-    parser.add_argument("-p", "--plot", metavar="plot-style", nargs="+", choices=PLOT_CHOICES, default=PLOT_CHOICES[:1],
-                        help="how to plot the results: "+", ".join(PLOT_CHOICES))
+    parser.add_argument("-p", "--plot", choices=PLOT_CHOICES, default=PLOT_CHOICES[0],
+                        help="how to plot the results")
     parser.add_argument("-r", "--remember", action="store_true",
                         help="remember already calculated values in a dict" \
                         " (might be slow for a large grids)")
@@ -323,19 +333,27 @@ if __name__ == "__main__":
 
 
     ARGS = parser.parse_args()
-    print(ARGS)
+
+    if len(ARGS.models) > 1 and ARGS.save:
+        parser.error("computing multiple models but giving only one file name " \
+                     "where the pictures should be save to doesn't make sense " \
+                     "(to me at least)")
 
     for model in ARGS.models:
+        save_to = ARGS.save
+        if save_to is None:  # -s or --save was set, but no filename was given
+            save_to = "_".join([model, ARGS.grid, ARGS.plot]) + ".jpg"
+
         print()
-        print("#"*40)
+        print("#"*80)
         print("computing example: " + model)
-        print("#"*40)
+        print("#"*80)
         EXAMPLES[model](model,
                     grid_type=ARGS.grid,
                     backscaling=ARGS.backscaling,
-                    plot_points=("points" in ARGS.plot),
-                    plot_areas=("areas" in ARGS.plot),
+                    plotting=ARGS.plot,
                     run_type=ARGS.run_type,
+                    save_to=save_to,
         )
 
     plt.show()
