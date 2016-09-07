@@ -1,5 +1,5 @@
 
-from __future__ import print_function, division
+from __future__ import print_function, division, generators
 
 import PTopologyL as topo
 
@@ -9,6 +9,7 @@ import periodic_kdtree as periodkdt
 
 import numpy as np
 import numpy.linalg as la
+import math
 
 import numba as nb
 
@@ -73,6 +74,7 @@ TRENCH = 13
 assert set(REGIONS).issubset(globals())
 
 OTHER_STATE = 14  # used for computation reasons only
+OUT_OF_BOUNDS_STATE = 15
 
 
 # ---- Colors ----
@@ -96,27 +98,6 @@ COLORS = {
         DARK_ABYSS: topo.cDarkAbyss,
         TRENCH: topo.cTrench,
         }
-
-
-def generate_2Dgrid(xmin, xmax, x_num, ymin, ymax):
-    x_len = xmax - xmin
-    y_len = ymax - ymin
-    x_step = max(x_len, y_len) / x_num
-    x_half_step = x_step / 2
-    x = np.linspace(xmin, xmax, x_num + 1)
-    x = (x[:-1] + x[1:]) / 2
-    y = np.linspace(ymin, ymax, x_num + 1)
-    y = (y[:-1] + y[1:]) / 2
-    xy = np.asarray(np.meshgrid(x, y))
-    xy = np.rollaxis(xy, 0, 3)
-    return [x_step, x_half_step, xy]
-
-
-def hexGridSeriesGen(dim):
-    a = 1/4  # comes straight from the calculation
-    yield 1  # 1 is set as inital condition
-    for d in range(1, dim):
-        yield np.sqrt((1-(-a)**(d+1)) / (1 + a))
 
 
 def Delta_series(Delta_0, dim):
@@ -144,7 +125,7 @@ def generate_grid(boundaries, n0, grid_type, periodicity=[], verbosity=True):
     periodicity = np.asarray(periodicity)
 
     dim = boundaries.shape[0]
-    offset = boundaries[:, 0]
+    offset = boundaries[:, 0].astype(float)
     scaling_factor = boundaries[:,1] - boundaries[:,0]
 
     if not periodicity.size:
@@ -181,6 +162,9 @@ def generate_grid(boundaries, n0, grid_type, periodicity=[], verbosity=True):
         MAX_NEIGHBOR_DISTANCE = 1.5 * x_step
         BOUNDS_EPSILON = 0.1 * x_step
         ALL_NEIGHBORS_DISTANCE = 2 * np.sqrt(dim) * x_step + BOUNDS_EPSILON
+        # print("x_step", x_step)
+        # print("ALL_NEIGHBORS_DISTANCE", ALL_NEIGHBORS_DISTANCE)
+        # assert False
         # ALL_NEIGHBORS_DISTANCE = np.sqrt(dim) * x_step + BOUNDS_EPSILON
         # STEPSIZE = ALL_NEIGHBORS_DISTANCE
         STEPSIZE = 1.5 * x_step
@@ -243,166 +227,65 @@ def generate_grid(boundaries, n0, grid_type, periodicity=[], verbosity=True):
     return grid, scaling_vectors, offset, x_step
 
 
-def hexGrid(boundaries, n0, verb = False):
-    """
-    boundaries = array with shape (d, 2), first index for dimension, second index for minimal and maximal values
-    """
-    global MAX_NEIGHBOR_DISTANCE, x_step, MAX_FINAL_DISTANCE, BOUNDS_EPSILON, STEPSIZE
-    boundaries = np.asarray(boundaries)
-    dim = boundaries.shape[0]
-    offset = boundaries[:,0]
-    print(boundaries)
-    scaling_factor = boundaries[:,1] - boundaries[:,0]
+def _generate_viability_single_point(evolutions, state_evaluation, use_numba=False, nb_nopython=False):
+    if use_numba:
+        raise NotImplementedError("numba usage doesn't really make sense here, because KDTREE cannot be numba jitted")
 
-    Delta_0 = 1/n0
-    x_step = Delta_0 # Delta_0 is side length of the simplices
-    eps = Delta_0 / 3 # introduced so in the first line there are exactly n0 and there are no shifts over 1 in any dimension afterwards
+        # isdispatcher = lambda x: isinstance(x, nb.dispatcher.Dispatcher)
+        # if not (isdispatcher(state_evaluation) and all(map(isdispatcher, evolutions))):
+            # warn.warn("you want to use numba, but some of the input stuff doesn't seem to be ready for compilation")
 
-    # print(np.array(list(hexGridSeriesGen(dim))))
-    Delta_all = Delta_0 * np.array(list(hexGridSeriesGen(dim)))
-    # print(Delta_all)
-    # args = [ np.arange(0, 1 - eps , Delta_d) for Delta_d in Delta_all ]
-    # print(len(args))
-    # print(list(map(len, args)))
-    # print(args)
-    # grid = np.asarray(np.meshgrid( *args , indexing = "ij"))
-    # assert False
-    grid = np.array(np.meshgrid( *[ np.arange(0, 1 - eps , Delta_d) for Delta_d in Delta_all ], indexing = "ij" ))
-    grid = np.rollaxis( grid, 0, grid.ndim )
-    assert len(grid.shape) == dim + 1
-    assert grid.shape[-1] == dim
-    # print(grid[:,:,1])
-    # print( grid.shape )
-    if verb:
-        print("created n = %i points"%np.prod(grid.shape[:-1]))
+    else:
 
-    shifts = Delta_all / 2
-    # print(shifts)
+        def _viability_single_point(coordinate_index, coordinates, states,
+                                    stop_states, succesful_state, else_state):
+            """Calculate whether a coordinate with value 'stop_value' can be reached from 'coordinates[coordinate_index]'."""
 
-    assert len(grid.shape) == dim + 1, "something is strange"
+            start = coordinates[coordinate_index]
+            start_state = states[coordinate_index]
 
-    all_slice = slice(0, None)
-    jump_slice = slice(1, None, 2)
-    for d in range(1, dim): # starting at 1, because in dimension 0 nothing changes anyway
-        slicelist = [all_slice] * dim
-        slicelist[d] = jump_slice
-        slicelist += (slice(0,d), )
-        # print(slicelist)
-        # print(grid.shape, grid[tuple(slicelist)].shape)
-        grid[tuple(slicelist)] += shifts[:d]
-        # grid[tuple(slicelist)][:d] = shifts[:d]
-
-    # flatten the array
-    grid = np.reshape(grid, (-1, dim))
-    # print(grid)
-
-    MAX_NEIGHBOR_DISTANCE = 1.01 * Delta_0
-    # MAX_FINAL_DISTANCE = 0.7 * Delta_0
-    BOUNDS_EPSILON = 0.1 * Delta_0
-    STEPSIZE = 1.5 * Delta_0
-    warn.warn("proper estimation of MAX_FINAL_DISTANCE is still necessary")
-
-    return grid, scaling_factor, offset, x_step
-
-
-def normalized_grid(boundaries, x_num):
-    """generates a normalized grid  in any dimension and gets the scaling factors and linear shift of each axis"""
-    global MAX_NEIGHBOR_DISTANCE, x_step, BOUNDS_EPSILON, STEPSIZE
-
-    dim = int(len(boundaries)/2)
-
-    scaling_factor = np.ones(dim)
-
-    offset = np.zeros(dim)
-
-    for index in range(0, dim):
-        scaling_factor[index] = boundaries[index + dim] - boundaries[index]
-
-        if boundaries[index] != 0:
-            offset[index] = boundaries[index]
-
-    grid_prep = np.linspace(0, 1, x_num)
-    # grid_prep = np.linspace(0, 1, x_num + 1)
-    # grid_prep = (grid_prep[:-1] + grid_prep[1:]) / 2
-
-    meshgrid_arg = [grid_prep for _ in range(dim)]
-
-    grid = np.asarray(np.meshgrid(*meshgrid_arg))
-
-    grid = np.rollaxis(grid, 0, dim + 1)
-
-    # reshaping coordinates and states in order to use kdtree
-    grid = np.reshape(grid, (-1, np.shape(grid)[-1]))
-
-    x_step = 1/(x_num-1)
-
-    MAX_NEIGHBOR_DISTANCE = 1.5 * x_step
-    # MAX_FINAL_DISTANCE = np.sqrt(dim) * x_step / 2
-    BOUNDS_EPSILON = 0.1 * x_step
-    STEPSIZE = 1.5 * x_step
-
-    return grid, scaling_factor, offset, x_step
-
-
-def viability_single_point(coordinate_index, coordinates, states, stop_states, succesful_state, else_state,
-                           evolutions, state_evaluation):
-    """Calculate whether a coordinate with value 'stop_value' can be reached from 'coordinates[coordinate_index]'."""
-
-    start = coordinates[coordinate_index]
-    start_state = states[coordinate_index]
-
-    global DEBUGGING
-    # DEBUGGING = True
-    # DEBUGGING = (start_state == 1)
-    # DEBUGGING = (coordinate_index == (10 * 80 - 64,))
-    # DEBUGGING = DEBUGGING and la.norm(start - np.array([1.164, 0.679])) < 0.01
-    DEBUGGING = DEBUGGING and start[0] < 0.01
-    # DEBUGGING = DEBUGGING and start_state == 1
-    # DEBUGGING = DEBUGGING or la.norm(start - np.array([0.1, 0.606])) < 0.02
-    # DEBUGGING = True
-
-    if DEBUGGING:
-        print()
-
-    for evol_num, evol in enumerate(evolutions):
-        traj = evol(start, STEPSIZE)
-
-        # the stuff below for later, if something like that should be
-        # reintroduced
-
-        # point = start
-        # for _ in range(MAX_EVOLUTION_NUM):
-            # point = evol(point, STEPSIZE)
-#
-            # if np.max(np.abs(point - start)) < x_half_step:
-                # # not yet close enough to a different point
-                # # so run the evolution function again
-                # if DEBUGGING:
-                    # print("too close, continue")
-                # continue # not yet close enough to another point
-
-        final_state = state_evaluation(traj)
-
-        if final_state in stop_states: # and constraint(point) and final_distance < MAX_FINAL_DISTANCE:
+            global DEBUGGING
+            # DEBUGGING = True
+            # DEBUGGING = (start_state == 1)
+            # DEBUGGING = (coordinate_index == (10 * 80 - 64,))
+            # DEBUGGING = DEBUGGING and la.norm(start - np.array([1.164, 0.679])) < 0.01
+            DEBUGGING = DEBUGGING and start[0] < 0.01
+            # DEBUGGING = DEBUGGING and start_state == 1
+            # DEBUGGING = DEBUGGING or la.norm(start - np.array([0.1, 0.606])) < 0.02
+            # DEBUGGING = True
 
             if DEBUGGING:
-                print( "%i:"%evol_num, coordinate_index, start, start_state, "-->", final_state )
-            return succesful_state
+                print()
 
-        # run the other evolutions to check whether they can reach a point with 'stop_state'
-        if DEBUGGING:
-            print("%i:"%evol_num, coordinate_index, start, start_state, "## break")
-        # break
-
-    # didn't find an option leading to a point with 'stop_state'
-    if DEBUGGING:
-        print("all:", coordinate_index, start, start_state, "-->", else_state)
-    return else_state
+            for evol_num, evol in enumerate(evolutions):
+                traj = evol(start, STEPSIZE)
 
 
-def state_evaluation_kdtree_line(traj):
+                final_state = state_evaluation(traj)
+
+                if final_state in stop_states: # and constraint(point) and final_distance < MAX_FINAL_DISTANCE:
+
+                    if DEBUGGING:
+                        print( "%i:"%evol_num, coordinate_index, start, start_state, "-->", final_state )
+                    return succesful_state
+
+                # run the other evolutions to check whether they can reach a point with 'stop_state'
+                if DEBUGGING:
+                    print("%i:"%evol_num, coordinate_index, start, start_state, "## break")
+
+            # didn't find an option leading to a point with 'stop_state'
+            if DEBUGGING:
+                print("all:", coordinate_index, start, start_state, "-->", else_state)
+            return else_state
+    return _viability_single_point
+
+
+def _state_evaluation_kdtree_line(traj):
+    """deprecated (for now ^^)"""
     start_point = traj[0]
     final_point = traj[-1]
+    # print("start_point", start_point)
+    # print("final_point", final_point)
 
     if OUT_OF_BOUNDS:
         # check whether out-of-bounds
@@ -416,8 +299,15 @@ def state_evaluation_kdtree_line(traj):
 
     # if not out-of-bounds, determine where it went to
 
+    # print("ALL_NEIGHBORS_DISTANCE", ALL_NEIGHBORS_DISTANCE)
+    # print("start_point", start_point)
     neighbor_indices = KDTREE.query_ball_point(start_point, ALL_NEIGHBORS_DISTANCE)
+    # print("neighbor_indices", neighbor_indices)
     neighbors = KDTREE.data[neighbor_indices]
+    # print("neighbors", neighbors)
+    # print("KDTREE.data[2]", KDTREE.data[2])
+    # print("diff", neighbors - KDTREE.data[2])
+    # print("norm(diff)", la.norm(neighbors - KDTREE.data[2], axis=-1))
     if hasattr(KDTREE, "bounds"):
         if DEBUGGING:
             print("bounds", KDTREE.bounds)
@@ -448,6 +338,7 @@ def state_evaluation_kdtree_line(traj):
     if np.allclose(a, 0):
         closest_index = _start_point_global_index
     else:
+        # print("neighbors", neighbors)
         b = neighbors - start_point[None, :]
 
         # take care of the periodic boundaries
@@ -462,9 +353,9 @@ def state_evaluation_kdtree_line(traj):
                 # print("b", b)
             a = (a + shiftbounds) % newbounds - shiftbounds
             b = (b + shiftbounds[None, :]) % newbounds[None, :] - shiftbounds[None, :]
-            # if DEBUGGING:
-                # print("a", a)
-                # print("b", b)
+        # if DEBUGGING:
+            # print("a", a)
+            # print("b", b)
 
         _p = np.tensordot(a, b, axes=[(0,), (1,)])
 
@@ -483,6 +374,28 @@ def state_evaluation_kdtree_line(traj):
     return final_state
 
 
+@nb.jit
+def state_evaluation_kdtree_numba(traj):
+    point = traj[-1]
+
+    if OUT_OF_BOUNDS:
+        projected_values = np.zeros_like(point)
+        dim = point.shape[0]
+        for i in range(dim):
+            projected_values += BASIS_VECTORS_INV[:, i] * point[i]
+
+        out = False
+        for i in range(dim):
+            if (BOUNDS[i, 0] > projected_values[i]) or (BOUNDS[i, 1] < projected_values[i]):
+                out = True
+                break
+        if out:
+            return OUT_OF_BOUNDS_STATE
+
+    final_distance, tree_index = KDTREE.query(point, 1)
+    return STATES[tree_index]
+
+
 def state_evaluation_kdtree(traj):
     point = traj[-1]
     if OUT_OF_BOUNDS:
@@ -490,10 +403,8 @@ def state_evaluation_kdtree(traj):
         if np.any( BOUNDS[:,0] > projected_values) or np.any( BOUNDS[:,1] < projected_values ) :  # is the point out-of-bounds?
             if DEBUGGING:
                 print("out-of-bounds")
-            return None  # "out-of-bounds state"
+            return OUT_OF_BOUNDS_STATE
     final_distance, tree_index = KDTREE.query(point, 1)
-    # if final_distance > MAX_FINAL_DISTANCE:  # <-- deprecated
-        # return None
     return STATES[tree_index]
 
 
@@ -566,22 +477,28 @@ def pre_calculation_hook_kdtree(coordinates, states,
 
 
 def viability_kernel_step(coordinates, states, good_states, bad_state, succesful_state, work_state,
-                          evolutions, state_evaluation):
+                          evolutions, state_evaluation,
+                          use_numba=False,
+                          nb_nopython=False):
     """do a single step of the viability calculation algorithm by checking which points stay immediately within the good_states"""
 
     changed = False
 
-    shape = coordinates.shape[:-1]
+    assert len(coordinates.shape) == 2, "use flattened grid, plz"
+    max_index = coordinates.shape[0]
 
-    for base_index in np.ndindex(shape):
+    viability_single_point = _generate_viability_single_point(evolutions, state_evaluation,
+                                                              use_numba=use_numba, nb_nopython=nb_nopython)
+
+    for base_index in range(max_index):
         neighbors = [base_index]
 
         for index in neighbors: # iterate over the base_index and, if any changes happened, over the neighbors, too
             old_state = states[index]
 
             if old_state == work_state:
-                new_state = viability_single_point(index, coordinates, states, good_states, succesful_state, bad_state,
-                                                   evolutions, state_evaluation)
+                new_state = viability_single_point(index, coordinates, states, good_states,
+                                                   succesful_state, bad_state)
 
                 if new_state != old_state:
                     changed = True
@@ -598,7 +515,6 @@ def get_neighbor_indices_via_cKD(index, neighbor_list=[]):
     index = np.asarray(index).astype(int)
 
     tree_neighbors = KDTREE.query_ball_point(KDTREE.data[index].flatten(), MAX_NEIGHBOR_DISTANCE)
-    tree_neighbors = [(x,) for x in tree_neighbors if not x in neighbor_list]
 
     neighbor_list.extend(tree_neighbors)
 
@@ -719,58 +635,96 @@ def make_run_function(rhs,
                       ordered_params,
                       offset,
                       scaling_vector,
-                      returning = "integration",
-                      remember = True
+                      returning="integration",
+                      remember=True,
+                      use_numba=True,
+                      nb_nopython=True,
                       ):
 
-    S = scaling_vector
-    Sinv = la.inv(S)
+    S = np.array(scaling_vector, order="C", copy=True)
+    Sinv = np.array(la.inv(S), order="C", copy=True)
 
 
-    # ----------- just for 2D Phase-Space-plot
-    def rhs_scaled_to_one_PS(y, t):
-        """\
-rescales space only, because that should be enough for the phase space plot
-"""
-        x = offset[:, None, None] + np.tensordot(Sinv, y, axes=[(1,), (0,)])
-        val = rhs(x, t, *ordered_params)  # calculate the rhs
-        # val = rhs(scaling_factor[:,None, None] * x0 + offset[:, None, None], t, *ordered_params)  # calculate the rhs
-        val = np.tensordot(S, val, axes=[(1,), (0,)])
-        return val
     # ----------------------------------------
 
-
-    @nb.jit
-    def rhs_scaled_to_one(y, t, *args):
-        x = offset + np.dot(Sinv, y)
-        # x = scaling_factor * x0 + offset
-        val = np.dot(S, rhs(x, t, *args)) # calculate the rhs
+    def rhs_scaled_to_one_PS(y, t):
+        """\
+        for 2D plotting of the whole phase space plot
+        rescales space only, because that should be enough for the phase space plot
+        """
+        x = offset[:, None, None] + np.tensordot(Sinv, y, axes=[(1,), (0,)])
+        val = rhs(x, t, *ordered_params)  # calculate the rhs
+        val = np.tensordot(S, val, axes=[(1,), (0,)])
         return val
 
+    # ----------------------------------------
 
-    @nb.jit
-    def trajectory_length_normalized_rhs(x0, t, *args):
-        val = rhs_scaled_to_one(x0, t, *args)  # calculate the rhs
-        return val / np.sqrt(np.sum(val ** 2, axis=-1))  # normalize it
+    if use_numba:
+        @nb.jit(nopython=nb_nopython)
+        def rhs_rescaled(y, t, *args):
+            dim = len(y)
+
+            # because of the rescaling to 1 in every dimension
+            # transforming y -> x
+            x = np.copy(offset)
+            for i in range(dim):
+                x += Sinv[:, i] * y[i]
+                # x += Sinv[:, i] * y[i]
+            dx = rhs(x, t, *args)
+            # transforming dx -> dy
+            dy = np.zeros_like(y)
+            for i in range(dim):
+                dy += S[:, i] * dx[i]
+                # dy += S[:, i] * dx[i]
+
+            # normalization of dy
+            dy_norm = 0.
+            for i in range(dim):
+                dy_norm += dy[i]*dy[i]
+            dy_norm = math.sqrt(dy_norm)
+
+            # check whether it's a fixed point
+            if dy_norm == 0.:
+                return np.zeros_like(dy)
+
+            return dy / dy_norm
+
+    else:
+        def rhs_rescaled(y, t, *args):
+            x = offset + np.dot(Sinv, y)
+            dx = np.dot(S, rhs(x, t, *args)) # calculate the rhs
+            return dx / np.sqrt(np.sum(dx ** 2, axis=-1))  # normalize it
 
 
-    @nb.jit
-    def normalized_linear_approximation(x, dt):
-        xdot = trajectory_length_normalized_rhs(x, dt, *ordered_params)
-        traj = np.array([x, x + xdot*dt])
-        if np.any(np.isinf(xdot)): # raise artifiially the warning if inf turns up
-            warn.warn("got a inf in the RHS function; assume {!s} to be a stable fixed point and returning the starting point".format(p),
-                      category=RuntimeWarning)
-            traj[1] = traj[0]
-            if DEBUGGING:
-                # plot the point, but a bit larger than the color one later
-                plt.plot(p[0], p[1], color = "red",
-                    linestyle = "", marker = ".", markersize = 45 ,zorder=0)
-            return np.asarray([p, p])
+    if use_numba:
+        @nb.jit(nopython=nb_nopython)
+        def normalized_linear_approximation(x, dt):
+            xdot = rhs_rescaled(x, dt, *ordered_params)
+            traj = np.empty((2, x.shape[0]))
+            traj[0] = x
+            if np.any(np.isinf(xdot)): # raise artifiially the warning if inf turns up
+                # warn.warn("got a inf in the RHS function; assume {!s} to be a stable fixed point and returning the starting point".format(x),
+                        # category=RuntimeWarning)
+                traj[1] = traj[0]
+            else:
+                traj[1] = x + xdot*dt
+            return traj
+    else:
+        def normalized_linear_approximation(x, dt):
+            xdot = rhs_rescaled(x, dt, *ordered_params)
+            traj = np.array([x, x + xdot*dt])
+            if np.any(np.isinf(xdot)): # raise artifiially the warning if inf turns up
+                warn.warn("got a inf in the RHS function; assume {!s} to be a stable fixed point and returning the starting point".format(x),
+                        category=RuntimeWarning)
+                traj[1] = traj[0]
+                if DEBUGGING:
+                    # plot the point, but a bit larger than the color one later
+                    plt.plot(p[0], p[1], color = "red",
+                        linestyle = "", marker = ".", markersize = 45 ,zorder=0)
 
-        elif DEBUGGING:
-            plt.plot(traj[:, 0], traj[:, 1], color="red", linewidth=3)
-        return traj
+            elif DEBUGGING:
+                plt.plot(traj[:, 0], traj[:, 1], color="red", linewidth=3)
+            return traj
 
 
     @nb.jit
@@ -824,7 +778,6 @@ def scaled_to_one_sunny(is_sunny, offset, scaling_vector):
     S = scaling_vector
     Sinv = la.inv(S)
 
-    @nb.jit
     def scaled_sunny(grid):
         new_grid = np.tensordot(grid, Sinv, axes=[(1,), (1,)]) + offset[None, :]
         # new_grid = backscaling_grid(grid, scaling_vector, offset)
@@ -833,58 +786,6 @@ def scaled_to_one_sunny(is_sunny, offset, scaling_vector):
         return val  # normalize it
 
     return scaled_sunny
-
-
-def make_run_function2(model_object, timestep,
-        backend = "odeint"
-        ):
-    """"""
-    if backend == "simple":
-
-        def model_run(p):
-            v = model_object.eval(*p)
-            v_norm = la.norm(v)
-            # resize all steps that might be too long
-            if v_norm > x_step:
-                v *= x_step / v_norm
-            p2 = p + v
-            plt.plot([p[0], p2[0]], [p[1], p2[1]], color = "blue", linewidth = 5)
-            return p2
-    elif backend == "odeint":
-
-        def model_run(p):
-            model_object.setInitialCond(p)
-            t, traj = model_object.run(0, timestep, steps = 1e2)
-            final_index = trajectory_length_index(traj, 1.5 * x_step)
-            traj = traj[:final_index]
-##             if length > 1.5*x_step: # better: use a random walk criteria to find the factor (and a possible exponent)
-##             # shorten the trajectory until length is roughly x_step
-            if DEBUGGING:
-                plt.plot(traj[:, 0], traj[:, 1], color = "red", linewidth = 3)
-            #else:
-             #   plt.plot(traj[:, 0], traj[:, 1], color = "blue", linewidth = 5)
-            return traj[-1]
-    elif backend == "new":
-
-        def model_run(p):
-            t = np.linspace(0, timestep, 1e2)
-            traj = model_object.integrate(p, t)
-            ##             final_index = trajectory_length_index(traj, 1.5 * x_step)
-            ##             traj = traj[:final_index]
-            length = trajectory_length(traj)
-            if length > 1.5 * x_step:  # better: use a random walk criteria to find the factor (and a possible exponent)
-                # shorten the trajectory until length is roughly x_step
-                traj = traj[:int(traj.shape[0] * 1.5 * x_step / length)]
-            if DEBUGGING:
-                plt.plot(traj[:, 0], traj[:, 1], color="red", linewidth=3)
-                ##             else:
-                ##                 plt.plot(traj[:, 0], traj[:, 1], color = "blue", linewidth = 1)
-            return traj[-1]
-    else:
-
-        raise NotImplementedError("backend = %s does not exist"%repr(backend))
-
-    return model_run
 
 
 def trajectory_length(traj):
@@ -909,7 +810,6 @@ def trajectory_length_index(traj, target_length):
     return index_1
 
 
-# @nb.jit
 def backscaling_grid(grid, scaling_vector, offset):
     S = scaling_vector
     Sinv = la.inv(S)
@@ -922,7 +822,7 @@ def topology_classification(coordinates, states, default_evols, management_evols
                             upgradeable_initial_states = False,
                             compute_eddies = False,
                             pre_calculation_hook = pre_calculation_hook_kdtree,  # None means nothing to be done
-                            state_evaluation = state_evaluation_kdtree_line,
+                            state_evaluation = state_evaluation_kdtree_numba,
                             grid_type = "orthogonal",
                             out_of_bounds=True, # either bool or bool array with shape (dim, ) or shape (dim, 2) with values for each boundary
                             ):

@@ -42,7 +42,6 @@ def generate_example(default_rhss,
                      boundaries,
                      default_parameters=[],
                      management_parameters=[],
-                     n0=80,
                      periodicity=[],
                      default_rhssPS=None,
                      management_rhssPS=None,
@@ -69,6 +68,7 @@ def generate_example(default_rhss,
                          plotting="points",
                          run_type="integration",
                          save_to="",
+                         n0=80,
             ):
 
         plot_points = (plotting == "points")
@@ -323,6 +323,8 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--integrate", action="store_const", dest="run_type",
                         const="integration", default="linear",
                         help="integrate instead of using linear approximation")
+    parser.add_argument("-n", "--num", type=int, default=80,
+                        help="number of points in each dimension")
     parser.add_argument("-p", "--plot", choices=PLOT_CHOICES, default=PLOT_CHOICES[0],
                         help="how to plot the results")
     parser.add_argument("-r", "--remember", action="store_true",
@@ -333,6 +335,8 @@ if __name__ == "__main__":
 
 
     ARGS = parser.parse_args()
+    if "all" in ARGS.models:
+        ARGS.models = AVAILABLE_EXAMPLES
 
     if len(ARGS.models) > 1 and ARGS.save:
         parser.error("computing multiple models but giving only one file name " \
@@ -354,6 +358,7 @@ if __name__ == "__main__":
                     plotting=ARGS.plot,
                     run_type=ARGS.run_type,
                     save_to=save_to,
+                    n0=ARGS.num,
         )
 
     plt.show()
