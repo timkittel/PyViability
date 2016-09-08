@@ -167,8 +167,9 @@ def generate_grid(boundaries, n0, grid_type, periodicity=[], verbosity=True):
         # assert False
         # ALL_NEIGHBORS_DISTANCE = np.sqrt(dim) * x_step + BOUNDS_EPSILON
         # STEPSIZE = ALL_NEIGHBORS_DISTANCE
-        STEPSIZE = 1.5 * x_step
+        # STEPSIZE = 1.5 * x_step
         # STEPSIZE = 2.5 * x_step
+        STEPSIZE = 2. * x_step
 
     elif grid_type in ["simplex-based"]:
         if np.any(periodicity_bool[1:]):
@@ -183,36 +184,6 @@ def generate_grid(boundaries, n0, grid_type, periodicity=[], verbosity=True):
 
         grid = np.tensordot(grid, basis_vectors, axes=[(1,), (1,)])
 
-        # # Delta_0 is the initial distance, ie. the one in the lowest dimension
-        # Delta_0 = 1 / n0
-        # # calculate the spacing in each dimension
-        # Delta_all = np.array(list(Delta_series(Delta_0, dim)))
-#
-        # # n_all is the number of points in each dimension
-        # n_all = (1 / Delta_all).astype(np.int)
-        # n_all -= n_all % 2 # else the modulo below could shift the grid
-#
-        # # boundaries of the generated grid are [0, x_max[0]] x [0, x_max[1]] x ...
-        # # x_max is in general !=1 because n_all was cut off to integers
-        # x_max = n_all * Delta_all
-        # # correct scaling factor a bit because the grid has _not_ [0,1]^dim as boundaries
-        # scaling_factor = scaling_factor / x_max
-#
-        # # generate the base vectors
-        # p_all = p_series(Delta_0, dim)
-#
-        # # generate a pre-grid that contains the coefficients for each base vector
-        # pre_grid = np.array(np.meshgrid(*[np.arange(n) for n in n_all]))
-#
-        # # generate the actual grid
-        # grid = np.tensordot(p_all, pre_grid, axes=[(1,), (0)])
-        # grid = np.reshape(grid, (dim, -1))
-#
-        # # move everything within the boundaries given by x_max
-        # grid %= x_max[:, np.newaxis]
-#
-        # # move the axis with the dimenion to the back
-        # grid = np.rollaxis(grid, 0, 2)
 
         # when recursively going through, then add the direct neighbors only
         MAX_NEIGHBOR_DISTANCE = 1.01 * x_step
@@ -248,8 +219,8 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
             # DEBUGGING = True
             # DEBUGGING = (start_state == 1)
             # DEBUGGING = (coordinate_index == (10 * 80 - 64,))
-            # DEBUGGING = DEBUGGING and la.norm(start - np.array([1.164, 0.679])) < 0.01
-            DEBUGGING = DEBUGGING and start[0] < 0.01
+            # DEBUGGING = DEBUGGING and la.norm(start - np.array([0.202, 0.582])) < 0.01
+            # DEBUGGING = DEBUGGING and start[0] < 0.01
             # DEBUGGING = DEBUGGING and start_state == 1
             # DEBUGGING = DEBUGGING or la.norm(start - np.array([0.1, 0.606])) < 0.02
             # DEBUGGING = True
@@ -390,9 +361,15 @@ def state_evaluation_kdtree_numba(traj):
                 out = True
                 break
         if out:
+            # if DEBUGGING:
+                # print("out-of-bounds")
             return OUT_OF_BOUNDS_STATE
 
     final_distance, tree_index = KDTREE.query(point, 1)
+
+    # if DEBUGGING:
+        # print("evaluation:", traj[0], "via", traj[1], "to", KDTREE.data[tree_index], "with state", STATES[tree_index])
+
     return STATES[tree_index]
 
 
@@ -691,9 +668,16 @@ def make_run_function(rhs,
 
     else:
         def rhs_rescaled(y, t, *args):
+            # because of the rescaling to 1 in every dimension
+            # transforming y -> x
             x = offset + np.dot(Sinv, y)
-            dx = np.dot(S, rhs(x, t, *args)) # calculate the rhs
-            return dx / np.sqrt(np.sum(dx ** 2, axis=-1))  # normalize it
+            # transforming dx -> dy
+            dy = np.dot(S, rhs(x, t, *args)) # calculate the rhs
+            # normalization of dy
+            dy_norm = np.sqrt(np.sum(dy ** 2, axis=-1))
+            if dy_norm == 0.:
+                return np.zeros_like(dy)
+            return dy / dy_norm
 
 
     if use_numba:

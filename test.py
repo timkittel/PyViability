@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 from __future__ import division, print_function
 
 
@@ -235,7 +235,7 @@ EXAMPLES = {
                                  tcm.techChange_sunny,
                                  [[0, 1], [0, 2]],
                                  default_parameters=[
-                                     dict(rvar = 1, pBmin = 0.15, pE = 0.3, delta = 0.025, smax = 0.3, sBmax = None)],
+                                     dict(rvar = 1, pBmin = 0.15, pE = 0.3, delta = 0.025, smax = 0.3, sBmax = 0.)],
                                  management_parameters=[
                                      dict(rvar = 1, pBmin = 0.15, pE = 0.3, delta = 0.025, smax = 0.3, sBmax = 0.5)],
                                  management_rhssPS = [tcm.techChange_rhsPS],
