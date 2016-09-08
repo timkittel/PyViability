@@ -874,7 +874,7 @@ def topology_classification(coordinates, states, default_evols, management_evols
                     print('###### no management dynamics given, skipping glade')
 
                 # calculate remaining upstream dark and sunny
-                print('###### calculating rest of upstream (lake, dark and sunny)')
+                print('###### calculating rest of upstream (possibly containing lake, dark and sunny)')
                 states[(states == UNSET)] = DARK_UP
                 viability_capture_basin(coordinates, states, [SHELTER, GLADE, -SUNNY_UP, -DARK_UP, -LAKE], SUNNY_UP, UNSET, DARK_UP, all_evols, **viability_kwargs)
 
