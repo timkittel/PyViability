@@ -1,5 +1,12 @@
 # editor stuff (vim Pymode uses rope)
 .ropeproject/
+.*.swp
+
+# data / output files
+*.out
+*.txt
+*.jpg
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

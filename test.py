@@ -2,8 +2,9 @@
 from __future__ import division, print_function
 
 
-import PyViability as viab
-import helper
+import pyviability as viab
+from pyviability import helper
+from pyviability import PTopologyL as topo
 
 import PlantModel as pm
 import TechChangeModel as tcm
@@ -12,7 +13,6 @@ import GravityPendulumModel as gpm
 import ConsumptionModel as cm
 import AWModel as awm
 
-import PTopologyL as topo
 
 import myPhaseSpaceL as mPS
 

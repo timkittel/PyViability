@@ -1,11 +1,11 @@
 
 from __future__ import print_function, division, generators
 
-import PTopologyL as topo
+from . import PTopologyL as topo
 
-import helper
+from . import helper
 
-import periodic_kdtree as periodkdt
+from . import periodic_kdtree as periodkdt
 
 import numpy as np
 import numpy.linalg as la
