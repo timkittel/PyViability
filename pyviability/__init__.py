@@ -1,6 +1,5 @@
 
 
-
 from .libviability import backscaling_grid, \
     generate_grid, \
     make_run_function, \
@@ -11,8 +10,5 @@ from .libviability import backscaling_grid, \
     scaled_to_one_sunny, \
     viability_capture_basin, \
     viability_kernel
-
-# from .helper import get_ordered_parameters, get_parameter_order
-
 
 

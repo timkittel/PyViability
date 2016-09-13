@@ -50,6 +50,7 @@ BASIS_VECTORS_INV = None
 OUT_OF_BOUNDS = None
 COORDINATES = None
 ALL_NEIGHBORS_DISTANCE = None
+PATHS = ()
 
 # ---- states ----
 # encode the different states as integers, so arrays of integers can be used
@@ -215,7 +216,7 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
             start = coordinates[coordinate_index]
             start_state = states[coordinate_index]
 
-            global DEBUGGING
+            global DEBUGGING, PATHS
             # DEBUGGING = True
             # DEBUGGING = (start_state == 1)
             # DEBUGGING = (coordinate_index == (10 * 80 - 64,))
@@ -232,10 +233,17 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
                 traj = evol(start, STEPSIZE)
 
 
-                final_state = state_evaluation(traj)
+                final_index, final_state = state_evaluation(traj)
 
                 if final_state in stop_states: # and constraint(point) and final_distance < MAX_FINAL_DISTANCE:
 
+                    if PATHS:
+                        PATHS[0][coordinate_index][:] = traj[-1]
+                        PATHS[1][coordinate_index] = final_index
+                        PATHS[2][coordinate_index] = evol_num
+        # PATHS = (np.copy(coordinates),  # for the target point
+                 # -np.ones((grid_size,), dtype=int),  # the coordinate where the target point get's associated to
+                 # -np.ones((grid_size,), dtype=np.int16) )  # for the number of the management option
                     if DEBUGGING:
                         print( "%i:"%evol_num, coordinate_index, start, start_state, "-->", final_state )
                     return succesful_state
@@ -365,12 +373,12 @@ def state_evaluation_kdtree_numba(traj):
                 # print("out-of-bounds")
             return OUT_OF_BOUNDS_STATE
 
-    final_distance, tree_index = KDTREE.query(point, 1)
+    _, tree_index = KDTREE.query(point, 1)
 
     # if DEBUGGING:
         # print("evaluation:", traj[0], "via", traj[1], "to", KDTREE.data[tree_index], "with state", STATES[tree_index])
 
-    return STATES[tree_index]
+    return tree_index, STATES[tree_index]
 
 
 def state_evaluation_kdtree(traj):
@@ -809,6 +817,7 @@ def topology_classification(coordinates, states, default_evols, management_evols
                             state_evaluation = state_evaluation_kdtree_numba,
                             grid_type = "orthogonal",
                             out_of_bounds=True, # either bool or bool array with shape (dim, ) or shape (dim, 2) with values for each boundary
+                            remember_paths=False,
                             ):
     """calculates different regions of the state space using viability theory algorithms"""
 
@@ -821,6 +830,12 @@ def topology_classification(coordinates, states, default_evols, management_evols
 
     grid_size, dim = coordinates.shape
     assert states.shape == (grid_size,), "coordinates and states input doesn't match"
+
+    if remember_paths:
+        global PATHS
+        PATHS = (np.copy(coordinates),  # for the target point
+                 -np.ones((grid_size,), dtype=int),  # the coordinate where the target point get's associated to
+                 -np.ones((grid_size,), dtype=np.int16) )  # for the number of the management option
 
     if periodic_boundaries == []:
         periodic_boundaries = - np.ones(dim)
