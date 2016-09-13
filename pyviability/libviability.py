@@ -853,7 +853,7 @@ def topology_classification(coordinates, states, default_evols, management_evols
     default_evols = list(default_evols)
     management_evols = list(management_evols)
 
-    all_evols = management_evols + default_evols
+    all_evols = default_evols + management_evols
 
     # better remove this and use directly the lower level stuff, see issue #13
     viability_kwargs = dict(
