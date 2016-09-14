@@ -6,7 +6,7 @@ from __future__ import print_function
 from setuptools import setup
 
 
-required_python_version = (3, 6)
+required_python_version = (3, 5)
 required_python_string=">=" + ".".join(map(str, required_python_version))
 
 
