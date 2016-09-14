@@ -272,7 +272,7 @@ def _state_evaluation_kdtree_line(traj):
         if np.any( BOUNDS[:,0] > projected_values) or np.any( BOUNDS[:,1] < projected_values ) :  # is the point out-of-bounds?
             if DEBUGGING:
                 print("out-of-bounds")
-            return None  # "out-of-bounds state"
+            return -1, OUT_OF_BOUNDS_STATE
 
     # assert False, "out of bounds doesn't seem to work?"
 
@@ -350,7 +350,7 @@ def _state_evaluation_kdtree_line(traj):
     if DEBUGGING:
         print("evaluation:", start_point, "via", final_point, "to", KDTREE.data[closest_index], "with state", final_state)
 
-    return final_state
+    return closest_index, final_state
 
 
 @nb.jit
@@ -371,7 +371,7 @@ def state_evaluation_kdtree_numba(traj):
         if out:
             # if DEBUGGING:
                 # print("out-of-bounds")
-            return OUT_OF_BOUNDS_STATE
+            return -1, OUT_OF_BOUNDS_STATE
 
     _, tree_index = KDTREE.query(point, 1)
 
@@ -389,8 +389,8 @@ def state_evaluation_kdtree(traj):
             if DEBUGGING:
                 print("out-of-bounds")
             return OUT_OF_BOUNDS_STATE
-    final_distance, tree_index = KDTREE.query(point, 1)
-    return STATES[tree_index]
+    _, tree_index = KDTREE.query(point, 1)
+    return tree_index, STATES[tree_index]
 
 
 def pre_calculation_hook_kdtree(coordinates, states,
