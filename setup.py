@@ -1,20 +1,26 @@
+
+# run 'pip install -e .' in the command line for installation
+
 from setuptools import setup
 
 
+required_python_version = (3, 6)
+required_python_string=">=" + ".".join(map(str, required_python_version))
 
+
+################################################################################
 # small hack as the 'python_requires' keyword argument of 'setup' seems to be
 # ignored
 
 import sys
 
-required_python_version = (3, 5)
-
 # check that at least python 'required_python_version' is used
 if sys.version_info < required_python_version:
-    print("Please use at least Python " + ".".join(map(str, required_python_version)))
+    print("Please use at least Python " + ".".join(map(str, required_python_version)),
+          " (not '" + sys.version + "')")
     sys.exit(1)
+################################################################################
 
-required_python_string=">=" + ".".join(map(str, required_python_version))
 
 setup(name="pyviability",
       version="0.11",
