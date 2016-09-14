@@ -33,7 +33,6 @@ BOUNDS_EPSILON = None  # should be set during grid Generation
 STEPSIZE = None
 
 # some constants so the calculation does end
-# MAX_EVOLUTION_NUM = 20
 MAX_ITERATION_EDDIES = 10
 DEBUGGING = 0
 GENERAL_VERBOSE = 0
@@ -118,7 +117,7 @@ def p_series(Delta_0, dim):
 
 
 def generate_grid(boundaries, n0, grid_type, periodicity=[], verbosity=True):
-    global MAX_NEIGHBOR_DISTANCE, BOUNDS_EPSILON, STEPSIZE, ALL_NEIGHBORS_DISTANCE, x_step
+    global MAX_NEIGHBOR_DISTANCE, BOUNDS_EPSILON, STEPSIZE, ALL_NEIGHBORS_DISTANCE
 
     assert grid_type in ["simplex-based", "orthogonal"], "unkown grid type '{!s}'".format(grid_type)
 
@@ -531,17 +530,13 @@ def viability_kernel(coordinates, states, good_states, bad_state, succesful_stat
     until convergence (no further change)"""
     # assert coordinates.shape[:-1] == states.shape[:-1], "'coordinates' and 'states' don't match in shape"
 
-    assert "x_step" in globals() # needs to be set by the user for now ... will be changed later
+    # assert "x_step" in globals() # needs to be set by the user for now ... will be changed later
     assert "BOUNDS_EPSILON" in globals() # needs to be set by the user for now ... will be changed later
     # assert "MAX_FINAL_DISTANCE" in globals() # needs to be set by the user for now ... will be changed later
     assert "MAX_NEIGHBOR_DISTANCE" in globals() # needs to be set by the user for now ... will be changed later
-    global x_half_step
-    x_half_step = x_step/2
-    if not "STEPSIZE" in globals():
-        global STEPSIZE
-        # fix stepsize on that for now if nothing else has been given by the
-        # user
-        STEPSIZE = 2 * x_step
+    assert "STEPSIZE" in globals()  # as the above comments
+    # global x_half_step
+    # x_half_step = x_step/2
 
     if not pre_calculation_hook is None:
         # run the pre-calculation hook (defaults to creation of the KD-Tree)
