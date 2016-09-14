@@ -1,6 +1,8 @@
 
 # run 'pip install -e .' in the command line for installation
 
+from __future__ import print_function
+
 from setuptools import setup
 
 
