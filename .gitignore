@@ -2,6 +2,10 @@
 .ropeproject/
 .*.swp
 
+# ecplise stuff
+*.project
+.pydevproject
+
 # data / output files
 *.out
 *.txt
