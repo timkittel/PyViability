@@ -1,4 +1,5 @@
 # please add documentation!
+# and add which pep8 stuff we want to ignore
 
 from .libviability import backscaling_grid, \
     generate_grid, \

@@ -1,9 +1,9 @@
-
 from __future__ import print_function, division, generators
 
 from . import PTopologyL as topo
 
-from . import helper
+# helper currently not used, integration stuff needs to be updated for that
+# from . import helper
 
 from . import periodic_kdtree as periodkdt
 
@@ -73,6 +73,7 @@ TRENCH = 13
 
 assert set(REGIONS).issubset(globals())
 
+
 OTHER_STATE = 14  # used for computation reasons only
 OUT_OF_BOUNDS_STATE = 15
 
@@ -126,7 +127,7 @@ def generate_grid(boundaries, n0, grid_type, periodicity=[], verbosity=True):
 
     dim = boundaries.shape[0]
     offset = boundaries[:, 0].astype(float)
-    scaling_factor = boundaries[:,1] - boundaries[:,0]
+    scaling_factor = boundaries[:, 1] - boundaries[:, 0]
 
     if not periodicity.size:
         periodicity = - np.ones((dim,))
@@ -184,12 +185,11 @@ def generate_grid(boundaries, n0, grid_type, periodicity=[], verbosity=True):
 
         grid = np.tensordot(grid, basis_vectors, axes=[(1,), (1,)])
 
-
         # when recursively going through, then add the direct neighbors only
         MAX_NEIGHBOR_DISTANCE = 1.01 * x_step
         # x_step = Delta_0 # Delta_0 is side length of the simplices
         BOUNDS_EPSILON = 0.1 * x_step
-        STEPSIZE = 2.5 * x_step # seems to be correct
+        STEPSIZE = 2.5 * x_step  # seems to be correct
         ALL_NEIGHBORS_DISTANCE = la.norm(np.sum(basis_vectors, axis=1)) * x_step + BOUNDS_EPSILON
 
     if verbosity:
@@ -231,10 +231,9 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
             for evol_num, evol in enumerate(evolutions):
                 traj = evol(start, STEPSIZE)
 
-
                 final_index, final_state = state_evaluation(traj)
 
-                if final_state in stop_states: # and constraint(point) and final_distance < MAX_FINAL_DISTANCE:
+                if final_state in stop_states:  # and constraint(point) and final_distance < MAX_FINAL_DISTANCE:
 
                     if PATHS:
                         PATHS[0][coordinate_index][:] = traj[-1]
@@ -244,7 +243,7 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
                  # -np.ones((grid_size,), dtype=int),  # the coordinate where the target point get's associated to
                  # -np.ones((grid_size,), dtype=np.int16) )  # for the number of the management option
                     if DEBUGGING:
-                        print( "%i:"%evol_num, coordinate_index, start, start_state, "-->", final_state )
+                        print( "%i:" % evol_num, coordinate_index, start, start_state, "-->", final_state )
                     return succesful_state
 
                 # run the other evolutions to check whether they can reach a point with 'stop_state'
@@ -268,7 +267,7 @@ def _state_evaluation_kdtree_line(traj):
     if OUT_OF_BOUNDS:
         # check whether out-of-bounds
         projected_values = np.tensordot(BASIS_VECTORS_INV, final_point, axes=[(1,), (0,)])
-        if np.any( BOUNDS[:,0] > projected_values) or np.any( BOUNDS[:,1] < projected_values ) :  # is the point out-of-bounds?
+        if np.any( BOUNDS[:, 0] > projected_values) or np.any( BOUNDS[:, 1] < projected_values ):  # is the point out-of-bounds?
             if DEBUGGING:
                 print("out-of-bounds")
             return -1, OUT_OF_BOUNDS_STATE
@@ -305,12 +304,12 @@ def _state_evaluation_kdtree_line(traj):
         # print(neighbors.shape)
         # print("neighbors")
         # print(neighbors)
-        plt.plot(start_point[0], start_point[1], color = "black",
-                linestyle = "", marker = ".", markersize = 40 ,zorder=0)
-        plt.plot(_start_point[0], _start_point[1], color = "black",
-                linestyle = "", marker = ".", markersize = 40 ,zorder=0)
-        plt.plot(neighbors[:, 0], neighbors[:, 1], color = "blue",
-                linestyle = "", marker = ".", markersize = 50 ,zorder=0)
+        plt.plot(start_point[0], start_point[1], color="black",
+                 linestyle="", marker=".", markersize=40, zorder=0)
+        plt.plot(_start_point[0], _start_point[1], color="black",
+                 linestyle="", marker=".", markersize=40, zorder=0)
+        plt.plot(neighbors[:, 0], neighbors[:, 1], color="blue",
+                 linestyle="", marker=".", markersize=50, zorder=0)
 
     a = final_point - start_point
     if np.allclose(a, 0):
@@ -384,7 +383,7 @@ def state_evaluation_kdtree(traj):
     point = traj[-1]
     if OUT_OF_BOUNDS:
         projected_values = np.tensordot(BASIS_VECTORS_INV, point, axes=[(1,), (0,)])
-        if np.any( BOUNDS[:,0] > projected_values) or np.any( BOUNDS[:,1] < projected_values ) :  # is the point out-of-bounds?
+        if np.any( BOUNDS[:, 0] > projected_values) or np.any( BOUNDS[:, 1] < projected_values ):  # is the point out-of-bounds?
             if DEBUGGING:
                 print("out-of-bounds")
             return OUT_OF_BOUNDS_STATE
@@ -424,7 +423,6 @@ def pre_calculation_hook_kdtree(coordinates, states,
             out_of_bounds = np.repeat(out_of_bounds[:, None], 2, axis=1)
         assert out_of_bounds.shape == (dim, 2)
 
-
         dim = coordinates.shape[-1]
         BOUNDS = np.zeros((dim, 2))
 
@@ -438,7 +436,7 @@ def pre_calculation_hook_kdtree(coordinates, states,
 
         for d in range(dim):
             if periodicity_bool[d]:
-                BOUNDS[d,:] = -np.inf, np.inf
+                BOUNDS[d, :] = -np.inf, np.inf
                 # this basically means, because of periodicity, the trajectories
                 # cannot run out-of-bounds
             else:
@@ -449,14 +447,14 @@ def pre_calculation_hook_kdtree(coordinates, states,
                 # actually the idea above is correct and this is simply the result
                 # combined with the checking whether out-of-bounds should be
                 # applied
-                BOUNDS[d,:] = np.where(out_of_bounds[d], (-BOUNDS_EPSILON, 1 + BOUNDS_EPSILON), (-np.infty, np.infty))
+                BOUNDS[d, :] = np.where(out_of_bounds[d], (-BOUNDS_EPSILON, 1 + BOUNDS_EPSILON), (-np.infty, np.infty))
 
                 # BOUNDS[d,:] = np.min(projected_values) - BOUNDS_EPSILON, np.max(projected_values) + BOUNDS_EPSILON
                 # BOUNDS[d,:] = np.min(coordinates[:,d]) - BOUNDS_EPSILON, np.max(coordinates[:,d]) + BOUNDS_EPSILON
 
         projected_values = np.tensordot(coordinates, BASIS_VECTORS_INV, axes=[(1,), (1,)])
-        assert np.all( BOUNDS[None, :,0] < projected_values) \
-            and np.all( BOUNDS[None, :,1] > projected_values ),\
+        assert np.all( BOUNDS[None, :, 0] < projected_values) \
+            and np.all( BOUNDS[None, :, 1] > projected_values ),\
             "BOUNDS and coordinates do not fit together, did you set the correct grid_type argument?"
 
 
@@ -477,7 +475,7 @@ def viability_kernel_step(coordinates, states, good_states, bad_state, succesful
     for base_index in range(max_index):
         neighbors = [base_index]
 
-        for index in neighbors: # iterate over the base_index and, if any changes happened, over the neighbors, too
+        for index in neighbors:  # iterate over the base_index and, if any changes happened, over the neighbors, too
             old_state = states[index]
 
             if old_state == work_state:
@@ -505,13 +503,13 @@ def get_neighbor_indices_via_cKD(index, neighbor_list=[]):
     return neighbor_list
 
 
-def get_neighbor_indices(index, shape, neighbor_list = []):
+def get_neighbor_indices(index, shape, neighbor_list=[]):
     """append all neighboring indices of 'index' to 'neighbor_list' if they are within 'shape'"""
 
     index = np.asarray(index)
     shape = np.asarray(shape)
 
-    for diff_index in it.product([-1, 0, 1], repeat = len(index)):
+    for diff_index in it.product([-1, 0, 1], repeat=len(index)):
         diff_index = np.asarray(diff_index)
         new_index = index + diff_index
 
@@ -522,23 +520,23 @@ def get_neighbor_indices(index, shape, neighbor_list = []):
 
 
 def viability_kernel(coordinates, states, good_states, bad_state, succesful_state, work_state, evolutions,
-                     periodic_boundaries = [],
-                     pre_calculation_hook = pre_calculation_hook_kdtree,  # None means nothing to be done
-                     state_evaluation = state_evaluation_kdtree,
+                     periodic_boundaries=[],
+                     pre_calculation_hook=pre_calculation_hook_kdtree,  # None means nothing to be done
+                     state_evaluation=state_evaluation_kdtree,
                      ):
     """calculate the viability kernel by iterating through the viability kernel steps
     until convergence (no further change)"""
     # assert coordinates.shape[:-1] == states.shape[:-1], "'coordinates' and 'states' don't match in shape"
 
-    # assert "x_step" in globals() # needs to be set by the user for now ... will be changed later
-    assert "BOUNDS_EPSILON" in globals() # needs to be set by the user for now ... will be changed later
-    # assert "MAX_FINAL_DISTANCE" in globals() # needs to be set by the user for now ... will be changed later
-    assert "MAX_NEIGHBOR_DISTANCE" in globals() # needs to be set by the user for now ... will be changed later
+    # assert "x_step" in globals()  # needs to be set by the user for now ... will be changed later
+    assert "BOUNDS_EPSILON" in globals()  # needs to be set by the user for now ... will be changed later
+    # assert "MAX_FINAL_DISTANCE" in globals()  # needs to be set by the user for now ... will be changed later
+    assert "MAX_NEIGHBOR_DISTANCE" in globals()  # needs to be set by the user for now ... will be changed later
     assert "STEPSIZE" in globals()  # as the above comments
     # global x_half_step
     # x_half_step = x_step/2
 
-    if not pre_calculation_hook is None:
+    if pre_calculation_hook is not None:
         # run the pre-calculation hook (defaults to creation of the KD-Tree)
         pre_calculation_hook(coordinates, states, None, periodic_boundaries)
 
@@ -548,15 +546,15 @@ def viability_kernel(coordinates, states, good_states, bad_state, succesful_stat
 
 
 def viability_capture_basin(coordinates, states, target_states, reached_state, bad_state, work_state, evolutions,
-                    pre_calculation_hook = pre_calculation_hook_kdtree,  # None means nothing to be done
-                    state_evaluation = state_evaluation_kdtree,
-                    ):
+                            pre_calculation_hook=pre_calculation_hook_kdtree,  # None means nothing to be done
+                            state_evaluation=state_evaluation_kdtree,
+                            ):
     """reuse the viability kernel algorithm to calculate the capture basin"""
 
     if work_state in states and any( ( target_state in states for target_state in target_states) ):
         # num_work = np.count_nonzero(work_state == states)
         viability_kernel(coordinates, states, target_states + [reached_state], work_state, reached_state,
-                                     work_state, evolutions, pre_calculation_hook = pre_calculation_hook ,state_evaluation = state_evaluation)
+                         work_state, evolutions, pre_calculation_hook=pre_calculation_hook, state_evaluation=state_evaluation)
         # changed = (num_work == np.count_nonzero(reached_state == states))
     else:
         print("empty work or target set")
@@ -591,8 +589,8 @@ def plot_points(coords, states):
 
     assert set(states.flatten()).issubset(COLORS)
     for color_state in COLORS:
-        plt.plot(coords[ states == color_state , 0], coords[ states == color_state , 1], color = COLORS[color_state],
-                 linestyle = "", marker = ".", markersize = 30 ,zorder=0)
+        plt.plot(coords[ states == color_state, 0], coords[ states == color_state, 1], color=COLORS[color_state],
+                 linestyle="", marker=".", markersize=30, zorder=0)
 
 
 def plot_areas(coords, states):
@@ -601,14 +599,14 @@ def plot_areas(coords, states):
     states = states.flatten()
     assert set(states).issubset(COLORS)
     coords = np.reshape(coords, states.shape + (-1,))
-    x, y = coords[:,0], coords[:,1]
+    x, y = coords[:, 0], coords[:, 1]
 
     color_states = sorted(COLORS)
     cmap = mpl.colors.ListedColormap([ COLORS[state] for state in color_states ])
     bounds = color_states[:1] + [ state + 0.5 for state in color_states[:-1]] + color_states[-1:]
     norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 
-    plt.tripcolor(x, y, states, cmap = cmap, norm = norm, shading = "gouraud")
+    plt.tripcolor(x, y, states, cmap=cmap, norm=norm, shading="gouraud")
 
 
 def make_run_function(rhs,
@@ -623,7 +621,6 @@ def make_run_function(rhs,
 
     S = np.array(scaling_vector, order="C", copy=True)
     Sinv = np.array(la.inv(S), order="C", copy=True)
-
 
     # ----------------------------------------
 
@@ -675,13 +672,12 @@ def make_run_function(rhs,
             # transforming y -> x
             x = offset + np.dot(Sinv, y)
             # transforming dx -> dy
-            dy = np.dot(S, rhs(x, t, *args)) # calculate the rhs
+            dy = np.dot(S, rhs(x, t, *args))  # calculate the rhs
             # normalization of dy
             dy_norm = np.sqrt(np.sum(dy ** 2, axis=-1))
             if dy_norm == 0.:
                 return np.zeros_like(dy)
             return dy / dy_norm
-
 
     if use_numba:
         @nb.jit(nopython=nb_nopython)
@@ -689,7 +685,7 @@ def make_run_function(rhs,
             xdot = rhs_rescaled(x, dt, *ordered_params)
             traj = np.empty((2, x.shape[0]))
             traj[0] = x
-            if np.any(np.isinf(xdot)): # raise artifiially the warning if inf turns up
+            if np.any(np.isinf(xdot)):  # raise artifiially the warning if inf turns up
                 # warn.warn("got a inf in the RHS function; assume {!s} to be a stable fixed point and returning the starting point".format(x),
                         # category=RuntimeWarning)
                 traj[1] = traj[0]
@@ -700,56 +696,55 @@ def make_run_function(rhs,
         def normalized_linear_approximation(x, dt):
             xdot = rhs_rescaled(x, dt, *ordered_params)
             traj = np.array([x, x + xdot*dt])
-            if np.any(np.isinf(xdot)): # raise artifiially the warning if inf turns up
+            if np.any(np.isinf(xdot)):  # raise artifiially the warning if inf turns up
                 warn.warn("got a inf in the RHS function; assume {!s} to be a stable fixed point and returning the starting point".format(x),
-                        category=RuntimeWarning)
+                          category=RuntimeWarning)
                 traj[1] = traj[0]
                 if DEBUGGING:
+                    p = traj[1]
                     # plot the point, but a bit larger than the color one later
-                    plt.plot(p[0], p[1], color = "red",
-                        linestyle = "", marker = ".", markersize = 45 ,zorder=0)
+                    plt.plot(p[0], p[1], color="red",
+                             linestyle="", marker=".", markersize=45, zorder=0)
 
             elif DEBUGGING:
                 plt.plot(traj[:, 0], traj[:, 1], color="red", linewidth=3)
             return traj
 
+    # @nb.jit
+    # def distance_normalized_rhs(x, lam, x0, *args):
+        # val = rhs_scaled_to_one(x, lam, *args)  # calculate the rhs
+        # if lam == 0:
+            # return val / np.sqrt(np.sum( val ** 2, axis=-1) )
+        # return val * lam / np.sum( (x-x0) * val, axis=-1)
 
-    @nb.jit
-    def distance_normalized_rhs(x, lam, x0, *args):
-        val = rhs_scaled_to_one(x, lam, *args)  # calculate the rhs
-        if lam == 0:
-            return val / np.sqrt(np.sum( val ** 2, axis=-1) )
-        return val * lam / np.sum( (x-x0) * val, axis=-1)
-
-
-    @helper.remembering(remember = remember)
-    def integration(p, stepsize):
-        if DEBUGGING:
-            integ_time = np.linspace(0, stepsize, 100)
-        else:
-            integ_time = [0, stepsize]
-        try:
-            with helper.stdout_redirected():
-                traj = integ.odeint(distance_normalized_rhs, p, integ_time,
-                                    args=(p,) + ordered_params,
-                                    printmessg = False
-                                    )
-            if np.any(np.isnan(traj[-1])): # raise artifiially the warning if nan turns up
-                raise integ.odepack.ODEintWarning("got a nan")
-        except integ.odepack.ODEintWarning:
-            warn.warn("got an integration warning; assume {!s} to be a stable fixed point and returning the starting point".format(p),
-                      category=RuntimeWarning)
-            if DEBUGGING:
-                # plot the point, but a bit larger than the color one later
-                plt.plot(p[0], p[1], color = "red",
-                    linestyle = "", marker = ".", markersize = 45 ,zorder=0)
-            return np.asarray([p, p])
-
-        if DEBUGGING:
-            plt.plot(traj[:, 0], traj[:, 1], color="red", linewidth=3)
-            return np.asarray([traj[0], traj[-1]])
-        else:
-            return traj
+    # @helper.remembering(remember=remember)
+    # def integration(p, stepsize):
+        # if DEBUGGING:
+            # integ_time = np.linspace(0, stepsize, 100)
+        # else:
+            # integ_time = [0, stepsize]
+        # try:
+            # with helper.stdout_redirected():
+                # traj = integ.odeint(distance_normalized_rhs, p, integ_time,
+                                    # args=(p,) + ordered_params,
+                                    # printmessg = False
+                                    # )
+            # if np.any(np.isnan(traj[-1])): # raise artifiially the warning if nan turns up
+                # raise integ.odepack.ODEintWarning("got a nan")
+        # except integ.odepack.ODEintWarning:
+            # warn.warn("got an integration warning; assume {!s} to be a stable fixed point and returning the starting point".format(p),
+                      # category=RuntimeWarning)
+            # if DEBUGGING:
+                # # plot the point, but a bit larger than the color one later
+                # plt.plot(p[0], p[1], color = "red",
+                    # linestyle = "", marker = ".", markersize = 45 ,zorder=0)
+            # return np.asarray([p, p])
+#
+        # if DEBUGGING:
+            # plt.plot(traj[:, 0], traj[:, 1], color="red", linewidth=3)
+            # return np.asarray([traj[0], traj[-1]])
+        # else:
+            # return traj
 
     if returning == "integration":
         return integration
@@ -776,17 +771,17 @@ def scaled_to_one_sunny(is_sunny, offset, scaling_vector):
 
 
 def trajectory_length(traj):
-    return np.sum( la.norm( traj[1:] - traj[:-1], axis = -1) )
+    return np.sum( la.norm( traj[1:] - traj[:-1], axis=-1) )
 
 
 def trajectory_length_index(traj, target_length):
-    lengths = np.cumsum( la.norm( traj[1:] - traj[:-1], axis = -1) )
+    lengths = np.cumsum( la.norm( traj[1:] - traj[:-1], axis=-1) )
 
     if target_length < lengths[-1]:
-        return traj.shape[0] # incl. last element
+        return traj.shape[0]  # incl. last element
     index_0, index_1 = 0, traj.shape[0] - 1
 
-    while not index_0 in [index_1, index_1 - 1]:
+    while index_0 not in [index_1, index_1 - 1]:
         middle_index = int( (index_0 + index_1)/2 )
 
         if lengths[middle_index] <= target_length:
@@ -805,13 +800,13 @@ def backscaling_grid(grid, scaling_vector, offset):
 
 
 def topology_classification(coordinates, states, default_evols, management_evols, is_sunny,
-                            periodic_boundaries = [],
-                            upgradeable_initial_states = False,
-                            compute_eddies = False,
-                            pre_calculation_hook = pre_calculation_hook_kdtree,  # None means nothing to be done
-                            state_evaluation = state_evaluation_kdtree_numba,
-                            grid_type = "orthogonal",
-                            out_of_bounds=True, # either bool or bool array with shape (dim, ) or shape (dim, 2) with values for each boundary
+                            periodic_boundaries=[],
+                            upgradeable_initial_states=False,
+                            compute_eddies=False,
+                            pre_calculation_hook=pre_calculation_hook_kdtree,  # None means nothing to be done
+                            state_evaluation=state_evaluation_kdtree_numba,
+                            grid_type="orthogonal",
+                            out_of_bounds=True,  # either bool or bool array with shape (dim, ) or shape (dim, 2) with values for each boundary
                             remember_paths=False,
                             ):
     """calculates different regions of the state space using viability theory algorithms"""
@@ -836,7 +831,7 @@ def topology_classification(coordinates, states, default_evols, management_evols
         periodic_boundaries = - np.ones(dim)
     periodic_boundaries = np.asarray(periodic_boundaries)
 
-    if not pre_calculation_hook is None:
+    if pre_calculation_hook is not None:
         # run the pre-calculation hook (defaults to creation of the KD-Tree)
         pre_calculation_hook(coordinates, states,
                              is_sunny=is_sunny,
@@ -852,8 +847,8 @@ def topology_classification(coordinates, states, default_evols, management_evols
 
     # better remove this and use directly the lower level stuff, see issue #13
     viability_kwargs = dict(
-        pre_calculation_hook = None,
-        state_evaluation = state_evaluation,
+        pre_calculation_hook=None,
+        state_evaluation=state_evaluation,
     )
 
     shelter_empty = False
@@ -863,8 +858,7 @@ def topology_classification(coordinates, states, default_evols, management_evols
         if default_evols:
             # calculate shelter
             print('###### calculating shelter')
-            states[(states == UNSET) & is_sunny(coordinates)] = SHELTER # initial state for shelter calculation
-            # viability_kernel(coordinates, states, good_states, bad_state, succesful_state, work_state, evolutions, **viability_kwargs)
+            states[(states == UNSET) & is_sunny(coordinates)] = SHELTER  # initial state for shelter calculation
             viability_kernel(coordinates, states, [SHELTER, -SHELTER], UNSET, SHELTER, SHELTER, default_evols, **viability_kwargs)
 
             if not np.any(states == SHELTER):
@@ -878,7 +872,7 @@ def topology_classification(coordinates, states, default_evols, management_evols
 
                     states[(states == UNSET) & is_sunny(coordinates)] = SUNNY_UP
 
-                    #viability_capture_basin(coordinates, states, target_states, reached_state, bad_state, work_state, evolutions, **viability_kwargs):
+                    # viability_capture_basin(coordinates, states, target_states, reached_state, bad_state, work_state, evolutions, **viability_kwargs):
                     viability_capture_basin(coordinates, states, [SHELTER, -SHELTER], GLADE, UNSET, SUNNY_UP, all_evols, **viability_kwargs)
                 else:
                     print('###### no management dynamics given, skipping glade')
@@ -919,9 +913,6 @@ def topology_classification(coordinates, states, default_evols, management_evols
         else:
             print('###### no management dynamics given, skipping downstream')
 
-
-
-
         # calculate trench and set the rest as preliminary estimation for the eddies
         print('###### calculating dark Eddies/Abyss')
         states[is_sunny(coordinates) & (states == UNSET)] = SUNNY_EDDIES
@@ -938,18 +929,17 @@ def topology_classification(coordinates, states, default_evols, management_evols
                                     [DARK_EDDIES, -DARK_EDDIES],
                                     SUNNY_EDDIES, SUNNY_ABYSS, UNSET, all_evols, **viability_kwargs)
 
-
             for num in range(MAX_ITERATION_EDDIES):
                 states[(states == DARK_EDDIES)] = UNSET
                 changed = viability_capture_basin(coordinates, states,
-                                        [SUNNY_EDDIES, -SUNNY_EDDIES],
-                                                DARK_EDDIES, DARK_ABYSS, UNSET, all_evols, **viability_kwargs)
+                                                  [SUNNY_EDDIES, -SUNNY_EDDIES],
+                                                  DARK_EDDIES, DARK_ABYSS, UNSET, all_evols, **viability_kwargs)
                 if not changed:
                     break
                 states[(states == SUNNY_EDDIES)] = UNSET
                 changed = viability_capture_basin(coordinates, states,
-                                        [DARK_EDDIES, -DARK_EDDIES],
-                                        SUNNY_EDDIES, SUNNY_ABYSS, UNSET, all_evols, **viability_kwargs)
+                                                  [DARK_EDDIES, -DARK_EDDIES],
+                                                  SUNNY_EDDIES, SUNNY_ABYSS, UNSET, all_evols, **viability_kwargs)
                 if not changed:
                     break
             else:
@@ -959,7 +949,6 @@ def topology_classification(coordinates, states, default_evols, management_evols
                 states[(states == SUNNY_EDDIES)] = SUNNY_ABYSS
                 states[(states == UNSET)] = DARK_ABYSS
                 states[(states == DARK_EDDIES)] = DARK_ABYSS
-
 
     # All initially given states are set to positive counterparts
     states[(states < UNSET)] *= -1
