@@ -105,8 +105,8 @@ def generate_example(default_rhss,
             fig = plt.figure(figsize=figure_size, tight_layout=True)
 
         # print(lv.STEPSIZE)
-        lv.STEPSIZE = 2 * x_step
-        # lv.STEPSIZE = 2 * x_step * max([1, np.sqrt( n0 / 80 )])  # prop to 1/sqrt(n0)
+        # lv.STEPSIZE = 2 * x_step
+        lv.STEPSIZE = 2 * x_step * max([1, np.sqrt( n0 / 80 )])  # prop to 1/sqrt(n0)
         # print(lv.STEPSIZE)
         # assert False
         print("STEPSIZE / x_step = {:5.3f}".format(lv.STEPSIZE / x_step))
@@ -216,7 +216,7 @@ def generate_example(default_rhss,
 
 
 EXAMPLES = {
-            "aw-model":
+            "aw-model-dg":
                 generate_example([awm.AW_rescaled_rhs],
                                  [awm.AW_rescaled_rhs],
                                  awm.AW_rescaled_sunny,
