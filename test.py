@@ -48,6 +48,7 @@ def generate_example(default_rhss,
                      management_rhssPS=None,
                      out_of_bounds=True,
                      compute_eddies=False,
+                     rescaling_epsilon=0.,
                      ):
 
     plotPS = lambda rhs, boundaries, style: mPS.plotPhaseSpace(rhs, [boundaries[0][0], boundaries[1][0], boundaries[0][1], boundaries[1][1]], colorbar=False, style=style)
@@ -83,8 +84,22 @@ def generate_example(default_rhss,
         states = np.zeros(grid.shape[:-1], dtype=np.int16)
 
         NB_NOPYTHON = False
-        default_runs = [viab.make_run_function(nb.jit(rhs, nopython=NB_NOPYTHON), helper.get_ordered_parameters(rhs, parameters), offset, scaling_factor, returning=run_type) for rhs, parameters in zip(default_rhss, default_parameters)] #noqa
-        management_runs = [viab.make_run_function(nb.jit(rhs, nopython=NB_NOPYTHON), helper.get_ordered_parameters(rhs, parameters), offset, scaling_factor, returning=run_type) for rhs, parameters in zip(management_rhss, management_parameters)] #noqa
+        default_runs = [viab.make_run_function(
+            nb.jit(rhs, nopython=NB_NOPYTHON),
+            helper.get_ordered_parameters(rhs, parameters),
+            offset,
+            scaling_factor,
+            returning=run_type,
+            rescaling_epsilon=rescaling_epsilon,
+            ) for rhs, parameters in zip(default_rhss, default_parameters)] #noqa
+        management_runs = [viab.make_run_function(
+            nb.jit(rhs, nopython=NB_NOPYTHON),
+            helper.get_ordered_parameters(rhs, parameters),
+            offset,
+            scaling_factor,
+            returning=run_type,
+            rescaling_epsilon=rescaling_epsilon,
+            ) for rhs, parameters in zip(management_rhss, management_parameters)] #noqa
 
         sunny = viab.scaled_to_one_sunny(sunny_fct, offset, scaling_factor)
 
@@ -128,7 +143,7 @@ def generate_example(default_rhss,
                 fig = plt.figure(figsize=figure_size, tight_layout=True)
                 # fig = plt.figure(figsize=(15, 15), tight_layout=True)
 
-                viab.plot_points(grid, states)
+                viab.plot_points(grid, states, markersize=30 if hidpi else 15)
                 if ARGS.title:
                     plt.gca().set_title('example: ' + example_name, fontsize=20)
 
@@ -175,7 +190,7 @@ def generate_example(default_rhss,
             if plot_points:
                 # figure already created above
 
-                viab.plot_points(grid, states)
+                viab.plot_points(grid, states, markersize=30 if hidpi else 15)
                 if ARGS.title:
                     plt.gca().set_title('example: ' + example_name, fontsize=20)
 
@@ -244,6 +259,7 @@ EXAMPLES = {
                                  management_parameters=[{"a":0.6}],
                                  periodicity=[1, -1],
                                  compute_eddies=True,
+                                 rescaling_epsilon=1e-3,
                                  ),
             "plants":
                 generate_example([pm.plants_rhs],

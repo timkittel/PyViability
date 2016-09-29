@@ -586,13 +586,13 @@ def print_evaluation(states, print_empty_regions=True, print_unknown=True):
         print()
 
 
-def plot_points(coords, states):
+def plot_points(coords, states, markersize=15):
     """plot the current states in the viability calculation as points"""
 
     assert set(states.flatten()).issubset(COLORS)
     for color_state in COLORS:
         plt.plot(coords[ states == color_state, 0], coords[ states == color_state, 1], color=COLORS[color_state],
-                 linestyle="", marker=".", markersize=30, zorder=0)
+                 linestyle="", marker=".", markersize=markersize, zorder=0)
 
 
 def plot_areas(coords, states):
@@ -619,6 +619,7 @@ def make_run_function(rhs,
                       remember=True,
                       use_numba=True,
                       nb_nopython=True,
+                      rescaling_epsilon=0.,
                       ):
 
     S = np.array(scaling_vector, order="C", copy=True)
@@ -666,7 +667,7 @@ def make_run_function(rhs,
             if dy_norm == 0.:
                 return np.zeros_like(dy)
 
-            return dy / dy_norm
+            return dy / (dy_norm + rescaling_epsilon)
 
     else:
         def rhs_rescaled(y, t, *args):
@@ -679,7 +680,7 @@ def make_run_function(rhs,
             dy_norm = np.sqrt(np.sum(dy ** 2, axis=-1))
             if dy_norm == 0.:
                 return np.zeros_like(dy)
-            return dy / dy_norm
+            return dy / (dy_norm + rescaling_epsilon)
 
     if use_numba:
         @nb.jit(nopython=nb_nopython)
