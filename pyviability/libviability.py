@@ -230,6 +230,8 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
 
             for evol_num, evol in enumerate(evolutions):
                 traj = evol(start, STEPSIZE)
+                # print(STEPSIZE)
+                # assert False
 
                 final_index, final_state = state_evaluation(traj)
 

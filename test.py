@@ -4,6 +4,7 @@ from __future__ import division, print_function
 
 import pyviability as viab
 from pyviability import helper
+from pyviability import libviability as lv
 from pyviability import PTopologyL as topo
 
 import PlantModel as pm
@@ -69,12 +70,13 @@ def generate_example(default_rhss,
                          run_type="integration",
                          save_to="",
                          n0=80,
+                         hidpi=False,
             ):
 
         plot_points = (plotting == "points")
         plot_areas = (plotting == "areas")
 
-        grid, scaling_factor,  offset, _ = viab.generate_grid(boundaries,
+        grid, scaling_factor,  offset, x_step = viab.generate_grid(boundaries,
                                                         n0,
                                                         grid_type,
                                                         periodicity = periodicity) #noqa
@@ -86,11 +88,28 @@ def generate_example(default_rhss,
 
         sunny = viab.scaled_to_one_sunny(sunny_fct, offset, scaling_factor)
 
-        # adding the figure here already if VERBOSE is set
+        # adding the figure here already in case VERBOSE is set
         # this makes only sense, if backscaling is switched off
+        if backscaling:
+            figure_size = np.array([7.5, 7.5])
+        else:
+            figure_size = np.array([7.5, 2.5 * np.sqrt(3) if grid_type == "simplex-based" else 7.5 ])
+        if hidpi:
+            figure_size = 2 * figure_size
+
+        figure_size = tuple(figure_size.tolist())
+
         if (not backscaling) and plot_points:
-            figure_size = (15, 5 * np.sqrt(3) if grid_type == "simplex-based" else 15)
+            # figure_size = (15, 5 * np.sqrt(3) if grid_type == "simplex-based" else 15)
+            # figure_size = (15, 5 * np.sqrt(3) if grid_type == "simplex-based" else 15)
             fig = plt.figure(figsize=figure_size, tight_layout=True)
+
+        # print(lv.STEPSIZE)
+        lv.STEPSIZE = 2 * x_step
+        # lv.STEPSIZE = 2 * x_step * max([1, np.sqrt( n0 / 80 )])  # prop to 1/sqrt(n0)
+        # print(lv.STEPSIZE)
+        # assert False
+        print("STEPSIZE / x_step = {:5.3f}".format(lv.STEPSIZE / x_step))
 
         start_time = time.time()
         viab.topology_classification(grid, states, default_runs, management_runs, sunny,
@@ -106,10 +125,12 @@ def generate_example(default_rhss,
             grid = viab.backscaling_grid(grid, scaling_factor, offset)
 
             if plot_points:
-                fig = plt.figure(figsize=(15, 15), tight_layout=True)
+                fig = plt.figure(figsize=figure_size, tight_layout=True)
+                # fig = plt.figure(figsize=(15, 15), tight_layout=True)
 
                 viab.plot_points(grid, states)
-                plt.gca().set_title('example: ' + example_name, fontsize=20)
+                if ARGS.title:
+                    plt.gca().set_title('example: ' + example_name, fontsize=20)
 
                 [plotPS(ft.partial(rhs, **parameters), boundaries, topo.styleDefault) #noqa
                     for rhs, parameters in zip(default_rhssPS, default_parameters)] #noqa
@@ -124,10 +145,12 @@ def generate_example(default_rhss,
 
 
             if plot_areas:
-                fig = plt.figure(figsize=(15, 15), tight_layout=True)
+                fig = plt.figure(figsize=figure_size, tight_layout=True)
+                # fig = plt.figure(figsize=(15, 15), tight_layout=True)
 
                 viab.plot_areas(grid, states)
-                plt.gca().set_title('example: ' + example_name, fontsize=20)
+                if ARGS.title:
+                    plt.gca().set_title('example: ' + example_name, fontsize=20)
 
                 [plotPS(ft.partial(rhs, **parameters), boundaries, topo.styleDefault) #noqa
                     for rhs, parameters in zip(default_rhssPS, default_parameters)] #noqa
@@ -153,7 +176,8 @@ def generate_example(default_rhss,
                 # figure already created above
 
                 viab.plot_points(grid, states)
-                plt.gca().set_title('example: ' + example_name, fontsize=20)
+                if ARGS.title:
+                    plt.gca().set_title('example: ' + example_name, fontsize=20)
 
                 [plotPS(rhs, [plot_x_limits, plot_y_limits], topo.styleDefault) for rhs, parameters in zip(default_PSs, default_parameters)]
                 [plotPS(rhs, [plot_x_limits, plot_y_limits], style) for rhs, parameters, style in zip(management_PSs, management_parameters, [topo.styleMod1, topo.styleMod2])] #noqa
@@ -171,7 +195,8 @@ def generate_example(default_rhss,
                 fig = plt.figure(figsize=(15, 15), tight_layout=True)
 
                 viab.plot_areas(grid, states)
-                plt.gca().set_title('example: ' + example_name, fontsize=20)
+                if ARGS.title:
+                    plt.gca().set_title('example: ' + example_name, fontsize=20)
 
                 [plotPS(rhs, [plot_x_limits, plot_y_limits], topo.styleDefault) for rhs, parameters in zip(default_PSs, default_parameters)]
                 [plotPS(rhs, [plot_x_limits, plot_y_limits], style) for rhs, parameters, style in zip(management_PSs, management_parameters, [topo.styleMod1, topo.styleMod2])] #noqa
@@ -320,11 +345,15 @@ if __name__ == "__main__":
                         help="overwrite existing files")
     parser.add_argument("-g", "--grid", choices=GRID_CHOICES, default=GRID_CHOICES[0],
                         help="grid type")
+    parser.add_argument("--hidpi", action="store_true",
+                        help="fix some things so everything looks okai on Hi-DPI screens")
     parser.add_argument("-i", "--integrate", action="store_const", dest="run_type",
                         const="integration", default="linear",
                         help="integrate instead of using linear approximation")
     parser.add_argument("-n", "--num", type=int, default=80,
                         help="number of points in each dimension")
+    parser.add_argument("--no-title", dest="title", action="store_false",
+                        help="remove the title from the plot")
     parser.add_argument("-p", "--plot", choices=PLOT_CHOICES, default=PLOT_CHOICES[0],
                         help="how to plot the results")
     parser.add_argument("-r", "--remember", action="store_true",
@@ -359,6 +388,7 @@ if __name__ == "__main__":
                     run_type=ARGS.run_type,
                     save_to=save_to,
                     n0=ARGS.num,
+                    hidpi=ARGS.hidpi,
         )
 
     plt.show()
