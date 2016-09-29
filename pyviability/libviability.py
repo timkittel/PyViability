@@ -619,7 +619,7 @@ def make_run_function(rhs,
                       remember=True,
                       use_numba=True,
                       nb_nopython=True,
-                      rescaling_epsilon=0.,
+                      rescaling_epsilon=1e-8,
                       ):
 
     S = np.array(scaling_vector, order="C", copy=True)
