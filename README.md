@@ -1,5 +1,5 @@
 
-## argument completion
+## argument completion (for test script)
 
 The testing script test.py uses argcomplete, so if you want to have argument completion please run once
 
