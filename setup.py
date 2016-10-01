@@ -5,6 +5,8 @@ from __future__ import print_function
 
 from setuptools import setup
 
+import setuptools as st
+
 
 required_python_version = (3, 5)
 required_python_string=">=" + ".".join(map(str, required_python_version))
@@ -39,8 +41,12 @@ setup(name="pyviability",
           "numba>=0.28.1",
           "scipy>=0.17.0",
           "matplotlib>=1.5.1",
+          "argcomplete>=1.0.0",
       ],
       zip_safe=False)
+
+
+print("I am doing something here.")
 
 
 

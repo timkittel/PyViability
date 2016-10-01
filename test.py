@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
 from __future__ import division, print_function
 
 
@@ -19,7 +20,7 @@ import myPhaseSpaceL as mPS
 
 import sys
 import time
-import argparse
+import argparse, argcomplete
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -379,6 +380,7 @@ if __name__ == "__main__":
                         help="save the picture; if no 'output-file' is given, a name is generated")
 
 
+    argcomplete.autocomplete(parser)
     ARGS = parser.parse_args()
     if "all" in ARGS.models:
         ARGS.models = AVAILABLE_EXAMPLES
