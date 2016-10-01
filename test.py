@@ -380,7 +380,9 @@ if __name__ == "__main__":
                         help="save the picture; if no 'output-file' is given, a name is generated")
 
 
+    # use argcomplete auto-completion
     argcomplete.autocomplete(parser)
+
     ARGS = parser.parse_args()
     if "all" in ARGS.models:
         ARGS.models = AVAILABLE_EXAMPLES

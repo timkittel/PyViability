@@ -27,7 +27,7 @@ if sys.version_info < required_python_version:
 
 
 setup(name="pyviability",
-      version="0.11",
+      version="0.12",
       description="a library for computation of viabilty sets and TSM sets",
       url="not yet there",
       author="Tim Kittel",
@@ -36,7 +36,6 @@ setup(name="pyviability",
       packages=["pyviability"],
       python_requires=required_python_string,
       install_requires=[
-          # "python_version>=3.5.0",
           "numpy>=1.11.0",
           "numba>=0.28.1",
           "scipy>=0.17.0",
@@ -44,10 +43,5 @@ setup(name="pyviability",
           "argcomplete>=1.0.0",
       ],
       zip_safe=False)
-
-
-print("I am doing something here.")
-
-
 
 
