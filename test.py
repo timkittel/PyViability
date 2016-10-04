@@ -73,6 +73,8 @@ def generate_example(default_rhss,
                          save_to="",
                          n0=80,
                          hidpi=False,
+                         use_numba=True,
+                         stop_when_finished="all",
             ):
 
         plot_points = (plotting == "points")
@@ -92,6 +94,7 @@ def generate_example(default_rhss,
             scaling_factor,
             returning=run_type,
             rescaling_epsilon=rescaling_epsilon,
+            use_numba=use_numba,
             ) for rhs, parameters in zip(default_rhss, default_parameters)] #noqa
         management_runs = [viab.make_run_function(
             nb.jit(rhs, nopython=NB_NOPYTHON),
@@ -100,6 +103,7 @@ def generate_example(default_rhss,
             scaling_factor,
             returning=run_type,
             rescaling_epsilon=rescaling_epsilon,
+            use_numba=use_numba,
             ) for rhs, parameters in zip(management_rhss, management_parameters)] #noqa
 
         sunny = viab.scaled_to_one_sunny(sunny_fct, offset, scaling_factor)
@@ -132,7 +136,10 @@ def generate_example(default_rhss,
                                      periodic_boundaries = periodicity,
                                      grid_type=grid_type,
                                      compute_eddies=compute_eddies,
-                                     out_of_bounds=out_of_bounds)
+                                     out_of_bounds=out_of_bounds,
+                                     stop_when_finished=stop_when_finished,
+                                     verbosity=2,
+                                     )
         time_diff = time.time() - start_time
 
         print("run time: {!s} s".format(dt.timedelta(seconds=time_diff)))
@@ -360,6 +367,8 @@ if __name__ == "__main__":
                         help="omit backscaling after the topology/viability computation")
     parser.add_argument("-f", "--force", action="store_true",
                         help="overwrite existing files")
+    parser.add_argument("--follow", nargs=2, metavar=("point", "dist"),
+                        help="follow the points that are at most 'dist' away from 'point")
     parser.add_argument("-g", "--grid", choices=GRID_CHOICES, default=GRID_CHOICES[0],
                         help="grid type")
     parser.add_argument("--hidpi", action="store_true",
@@ -378,6 +387,10 @@ if __name__ == "__main__":
                         " (might be slow for a large grids)")
     parser.add_argument("-s", "--save", metavar="output-file", nargs="?", default="",
                         help="save the picture; if no 'output-file' is given, a name is generated")
+    parser.add_argument("--stop-when-finished", default="all", metavar="region",
+                        help="stop when the computation of 'region' is finished") 
+    parser.add_argument("--no-numba", dest="use_numba", action="store_false",
+                        help="do not use numba jit-compiling")
 
 
     # use argcomplete auto-completion
@@ -409,6 +422,8 @@ if __name__ == "__main__":
                     save_to=save_to,
                     n0=ARGS.num,
                     hidpi=ARGS.hidpi,
+                    use_numba=ARGS.use_numba,
+                    stop_when_finished=ARGS.stop_when_finished,
         )
 
     plt.show()

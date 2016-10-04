@@ -229,14 +229,16 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
             start_state = states[coordinate_index]
 
             global DEBUGGING, PATHS
-            # DEBUGGING = True
-            # DEBUGGING = (start_state == 1)
+            DEBUGGING = True
+            # DEBUGGING = DEBUGGING and (start_state == 1)
             # DEBUGGING = (coordinate_index == (10 * 80 - 64,))
-            # DEBUGGING = DEBUGGING and la.norm(start - np.array([0.202, 0.582])) < 0.01
+            DEBUGGING = DEBUGGING and la.norm(start - np.array([ 0.51253769,  0.97392462,  1.        ])) < 0.01
+            # DEBUGGING = DEBUGGING and la.norm(start - np.array([0.008, 0.747])) < 0.001
             # DEBUGGING = DEBUGGING and start[0] < 0.01
             # DEBUGGING = DEBUGGING and start_state == 1
             # DEBUGGING = DEBUGGING or la.norm(start - np.array([0.1, 0.606])) < 0.02
             # DEBUGGING = True
+            # print("DEBUGGING", DEBUGGING)
 
             if DEBUGGING:
                 print()
@@ -366,7 +368,7 @@ def _state_evaluation_kdtree_line(traj):
     return closest_index, final_state
 
 
-@nb.jit
+# @nb.jit
 def state_evaluation_kdtree_numba(traj):
     point = traj[-1]
 
@@ -382,14 +384,14 @@ def state_evaluation_kdtree_numba(traj):
                 out = True
                 break
         if out:
-            # if DEBUGGING:
-                # print("out-of-bounds")
+            if DEBUGGING:
+                print("out-of-bounds")
             return -1, OUT_OF_BOUNDS_STATE
 
     _, tree_index = KDTREE.query(point, 1)
 
-    # if DEBUGGING:
-        # print("evaluation:", traj[0], "via", traj[1], "to", KDTREE.data[tree_index], "with state", STATES[tree_index])
+    if DEBUGGING:
+        print("evaluation:", traj[0], "via", traj[1], "to", KDTREE.data[tree_index], "with state", STATES[tree_index])
 
     return tree_index, STATES[tree_index]
 
@@ -417,6 +419,8 @@ def pre_calculation_hook_kdtree(coordinates, states,
     dim = np.shape(coordinates)[-1]
     periodicity_bool = (periodicity > 0)
 
+    printv("creating k-d tree ...", end=" ", flush=True)
+
     # check, if there are periodic boundaries and if so, use different tree form
     if np.any(periodicity_bool):
         assert dim == len(periodicity_bool), "Given boundaries don't match with " \
@@ -427,6 +431,7 @@ def pre_calculation_hook_kdtree(coordinates, states,
         KDTREE = periodkdt.PeriodicCKDTree(periodicity, coordinates)
     else:
         KDTREE = spat.cKDTree(coordinates)
+    printv("done")
 
     OUT_OF_BOUNDS = not (out_of_bounds is False)
     if OUT_OF_BOUNDS:
@@ -599,11 +604,16 @@ def print_evaluation(states, print_empty_regions=True, print_unknown=True):
         print()
 
 
-def plot_points(coords, states, markersize=15):
+def plot_points(coords, states, markersize=15, plot_unset=False):
     """plot the current states in the viability calculation as points"""
 
     assert set(states.flatten()).issubset(COLORS)
-    for color_state in COLORS:
+
+    plot_colors = list(COLORS)
+    if not plot_unset:
+        plot_colors.pop(UNSET)
+
+    for color_state in plot_colors:
         plt.plot(coords[ states == color_state, 0], coords[ states == color_state, 1], color=COLORS[color_state],
                  linestyle="", marker=".", markersize=markersize, zorder=0)
 
@@ -723,7 +733,7 @@ def make_run_function(rhs,
                              linestyle="", marker=".", markersize=45, zorder=0)
 
             elif DEBUGGING:
-                plt.plot(traj[:, 0], traj[:, 1], color="red", linewidth=3)
+                plt.plot(traj[:, 0], traj[:, 1], color="red", linewidth=1)
             return traj
 
     # @nb.jit
@@ -815,19 +825,28 @@ def backscaling_grid(grid, scaling_vector, offset):
     return new_grid
 
 
+def reset_initial_states(coordinates, states):
+    # All initially given states are set to positive counterparts
+    states[(states < UNSET)] *= -1
+
+
 def topology_classification(coordinates, states, default_evols, management_evols, is_sunny,
                             periodic_boundaries=[],
                             upgradeable_initial_states=False,
                             compute_eddies=False,
                             pre_calculation_hook=pre_calculation_hook_kdtree,  # None means nothing to be done
                             state_evaluation=state_evaluation_kdtree_numba,
+                            post_computation_hook=reset_initial_states,
                             grid_type="orthogonal",
                             out_of_bounds=True,  # either bool or bool array with shape (dim, ) or shape (dim, 2) with values for each boundary
                             remember_paths=False,
                             verbosity=0,
+                            stop_when_finished="all",
                             ):
     """calculates different regions of the state space using viability theory algorithms
     """
+
+    assert stop_when_finished in ["all", "shelter", "upstream"]
 
     # upgrading initial states to higher is not yet implemented
     if upgradeable_initial_states:
@@ -881,6 +900,11 @@ def topology_classification(coordinates, states, default_evols, management_evols
             printv('computing shelter')
             states[(states == UNSET) & is_sunny(coordinates)] = SHELTER  # initial state for shelter calculation
             viability_kernel(coordinates, states, [SHELTER, -SHELTER], UNSET, SHELTER, SHELTER, default_evols, **viability_kwargs)
+            if stop_when_finished == "shelter":
+                # do the post computation hook (default, setting negative states positive)
+                # and then exit
+                post_computation_hook(coordinates, states)
+                return 
 
             if not np.any(states == SHELTER):
                 printv('shelter empty')
@@ -914,6 +938,13 @@ def topology_classification(coordinates, states, default_evols, management_evols
                     printv('no management dynamics given, skipping lake')
         else:
             printv('no default dynamics given, skipping upstream')
+
+        if stop_when_finished in ["shelter", "glade", "rest upstream", "lake", "upstream"]:
+            # do the post computation hook (default, setting negative states positive)
+            # and then exit
+            post_computation_hook(coordinates, states)
+            return 
+
 
         if management_evols:
             # calculate Bachwater
@@ -971,9 +1002,11 @@ def topology_classification(coordinates, states, default_evols, management_evols
                 states[(states == UNSET)] = DARK_ABYSS
                 states[(states == DARK_EDDIES)] = DARK_ABYSS
 
-    # All initially given states are set to positive counterparts
-    states[(states < UNSET)] *= -1
+    # computation is done,
+    # do the post computation hook (default, setting negative states positive)
+    # and then exit
+    post_computation_hook(coordinates, states)
 
-    return states
+    return 
 
 

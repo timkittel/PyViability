@@ -5,8 +5,84 @@ import os
 import sys
 import inspect
 
+from scipy.spatial import cKDTree
+
 
 REMEMBERED = {}  # used by remembering decorator
+
+def _plot_nothing(ax, traj, management_option):
+    pass
+
+
+def _plot2d(ax, traj, management_option):
+    ax.plot(traj[0], traj[1],
+                color="lightblue" if management_option == 0 else "black")
+
+
+def _plot3d(ax, traj, management_option):
+    ax.plot3D(xs=traj[0], ys=traj[1], zs=traj[2],
+                color="lightblue" if management_option == 0 else "black")
+
+def _dont_follow(*args, **kwargs):
+    return False
+
+
+def follow_point(starting_indices, path_object, grid, states, 
+                 verbosity=1, 
+                 follow_condition=_dont_follow,
+                 plot_func=_plot_nothing,
+                 plot_axes=None,
+                 run_function=None,
+                 stepsize=None,
+                 ):
+
+    if not follow_condition is _dont_follow:
+        tree = cKDTree(grid)
+
+    starting_indices = list(starting_indices)
+    if verbosity >= 1:
+        print("starting points and states for paths:")
+        for ind in starting_indices:
+            print("{!s} --- {:>2}".format(grid[ind], states[ind]))
+        print()
+    plotted_indices = set()
+    print("calculating and plotting paths ... ", end="", flush=True)
+    for ind0 in starting_indices:
+        if ind0 in plotted_indices:
+            continue
+        plotted_indices.add(ind0)
+        x0 = grid[ind0]
+        ind1 = paths[1][ind]
+        if ind1 > 0:
+            x1 = paths[0][ind0]
+        else:
+            if follow_condition(ind0, grid, states):
+                assert not run_function is None, "please provide a run_function"
+                assert not stepsize is None, "please provide a stepsize"
+                _, x1 = run_function(x0, stepsize)
+                _, ind1 = tree.query(x1)
+            else:
+                continue
+        plot_func(plot_axes, traj, management_option)
+
+
+        if verbosity >= 2:
+            print("{!s} --- {:>2}".format(grid[ind], states[ind]))
+            _, x1 = default_run(grid[ind], stepsize)
+            print("new_point: ", x1)
+            print("going to index:", paths[1][ind])
+            if paths[1][ind] >=0:
+                starting_indices.append(paths[1][ind])
+            elif FOLLOW:
+                _, index = tree.query(x1)
+                print("going to index (tree):", index)
+                starting_indices.append(index)
+        if np.all(is_inside([x0, x1], args.plot_boundaries)):
+            traj = list(zip(x0, x1))
+            ax3d.plot3D(xs=traj[0], ys=traj[1], zs=traj[2],
+                        color="lightblue" if paths[2][ind] == 0 else "black")
+            starting_indices.append(paths[1][ind])
+    print("done\n")
 
 
 def get_parameter_order(func):
