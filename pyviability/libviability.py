@@ -105,13 +105,18 @@ COLORS = {
 
 
 def printv(*args, verbosity=1, **kwargs):
+    if "flush" not in kwargs:
+        kwargs["flush"] = True
     if verbosity <= VERBOSITY:
         date = dt.datetime.now().ctime()
         print(PRINT_PREFIX + date + PRINT_INFIX, *args, **kwargs)
 
 
 def printd(*args, **kwargs):
-    if DEBUGGING: print(*args, **kwargs)
+    if "flush" not in kwargs:
+        kwargs["flush"] = True
+    if DEBUGGING:
+        print(*args, **kwargs)
 
 
 def Delta_series(Delta_0, dim):
@@ -229,10 +234,10 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
             start_state = states[coordinate_index]
 
             global DEBUGGING, PATHS
-            DEBUGGING = True
+            # DEBUGGING = True
             # DEBUGGING = DEBUGGING and (start_state == 1)
             # DEBUGGING = (coordinate_index == (10 * 80 - 64,))
-            DEBUGGING = DEBUGGING and la.norm(start - np.array([ 0.51253769,  0.97392462,  1.        ])) < 0.01
+            # DEBUGGING = DEBUGGING and la.norm(start - np.array([ 0.51253769,  0.97392462,  1.        ])) < 0.02
             # DEBUGGING = DEBUGGING and la.norm(start - np.array([0.008, 0.747])) < 0.001
             # DEBUGGING = DEBUGGING and start[0] < 0.01
             # DEBUGGING = DEBUGGING and start_state == 1
@@ -539,10 +544,11 @@ def get_neighbor_indices(index, shape, neighbor_list=[]):
     return neighbor_list
 
 
-def viability_kernel(coordinates, states, good_states, bad_state, succesful_state, work_state, evolutions,
+def viability_kernel(coordinates, states, *, 
+                     good_states, bad_state, succesful_state, work_state, evolutions,
                      periodic_boundaries=[],
                      pre_calculation_hook=pre_calculation_hook_kdtree,  # None means nothing to be done
-                     state_evaluation=state_evaluation_kdtree,
+                     state_evaluation=state_evaluation_kdtree
                      ):
     """calculate the viability kernel by iterating through the viability kernel steps
     until convergence (no further change)"""
@@ -565,16 +571,23 @@ def viability_kernel(coordinates, states, good_states, bad_state, succesful_stat
     return viability_kernel_step(coordinates, states, good_states, bad_state, succesful_state, work_state, evolutions, state_evaluation)
 
 
-def viability_capture_basin(coordinates, states, target_states, reached_state, bad_state, work_state, evolutions,
+def viability_capture_basin(coordinates, states, *,
+                            target_states, reached_state, bad_state, work_state, evolutions,
                             pre_calculation_hook=pre_calculation_hook_kdtree,  # None means nothing to be done
-                            state_evaluation=state_evaluation_kdtree,
+                            state_evaluation=state_evaluation_kdtree
                             ):
     """reuse the viability kernel algorithm to calculate the capture basin"""
 
     if work_state in states and any( ( target_state in states for target_state in target_states) ):
         # num_work = np.count_nonzero(work_state == states)
-        viability_kernel(coordinates, states, target_states + [reached_state], work_state, reached_state,
-                         work_state, evolutions, pre_calculation_hook=pre_calculation_hook, state_evaluation=state_evaluation)
+        viability_kernel(coordinates, states, 
+                         good_states=target_states + [reached_state], 
+                         bad_state=work_state, 
+                         succesful_state=reached_state,
+                         work_state=work_state, 
+                         evolutions=evolutions, 
+                         pre_calculation_hook=pre_calculation_hook, 
+                         state_evaluation=state_evaluation)
         # changed = (num_work == np.count_nonzero(reached_state == states))
     else:
         printv("empty work or target set", verbosity=2)
@@ -899,7 +912,13 @@ def topology_classification(coordinates, states, default_evols, management_evols
             # calculate shelter
             printv('computing shelter')
             states[(states == UNSET) & is_sunny(coordinates)] = SHELTER  # initial state for shelter calculation
-            viability_kernel(coordinates, states, [SHELTER, -SHELTER], UNSET, SHELTER, SHELTER, default_evols, **viability_kwargs)
+            viability_kernel(coordinates, states, 
+                    good_states=[SHELTER, -SHELTER], 
+                    bad_state=UNSET, 
+                    succesful_state=SHELTER, 
+                    work_state=SHELTER, 
+                    evolutions=default_evols,
+                    **viability_kwargs)
             if stop_when_finished == "shelter":
                 # do the post computation hook (default, setting negative states positive)
                 # and then exit
@@ -918,14 +937,25 @@ def topology_classification(coordinates, states, default_evols, management_evols
                     states[(states == UNSET) & is_sunny(coordinates)] = SUNNY_UP
 
                     # viability_capture_basin(coordinates, states, target_states, reached_state, bad_state, work_state, evolutions, **viability_kwargs):
-                    viability_capture_basin(coordinates, states, [SHELTER, -SHELTER], GLADE, UNSET, SUNNY_UP, all_evols, **viability_kwargs)
+                    viability_capture_basin(coordinates, states, 
+                            target_states=[SHELTER, -SHELTER], 
+                            reached_state=GLADE, 
+                            bad_state=UNSET, 
+                            work_state=SUNNY_UP, 
+                            evolutions=all_evols, **viability_kwargs)
                 else:
                     printv('no management dynamics given, skipping glade')
 
                 # calculate remaining upstream dark and sunny
                 printv('computing rest of upstream (possibly containing lake, dark and sunny)')
                 states[(states == UNSET)] = DARK_UP
-                viability_capture_basin(coordinates, states, [SHELTER, GLADE, -SUNNY_UP, -DARK_UP, -LAKE], SUNNY_UP, UNSET, DARK_UP, all_evols, **viability_kwargs)
+                viability_capture_basin(coordinates, states, 
+                                        target_states=[SHELTER, -SHELTER, GLADE, -GLADE, -SUNNY_UP, -DARK_UP, -LAKE], 
+                                        reached_state=SUNNY_UP, 
+                                        bad_state=UNSET, 
+                                        work_state=DARK_UP, 
+                                        evolutions=all_evols,
+                                        **viability_kwargs)
 
                 states[~is_sunny(coordinates) & (states == SUNNY_UP)] = DARK_UP
 
@@ -933,7 +963,13 @@ def topology_classification(coordinates, states, default_evols, management_evols
                     # calculate Lake
                     printv('computing lake')
                     states[is_sunny(coordinates) & (states == SUNNY_UP)] = LAKE
-                    viability_kernel(coordinates, states, [SHELTER, GLADE, LAKE, -LAKE], SUNNY_UP, LAKE, LAKE, all_evols, **viability_kwargs)
+                    viability_kernel(coordinates, states, 
+                            good_states=[SHELTER, -SHELTER, GLADE, -GLADE, LAKE, -LAKE], 
+                            bad_state=SUNNY_UP, 
+                            succesful_state=LAKE, 
+                            work_state=LAKE, 
+                            evolutions=all_evols,
+                            **viability_kwargs)
                 else:
                     printv('no management dynamics given, skipping lake')
         else:
@@ -950,7 +986,14 @@ def topology_classification(coordinates, states, default_evols, management_evols
             # calculate Bachwater
             printv('computing backwater')
             states[is_sunny(coordinates) & (states == UNSET)] = BACKWATERS
-            viability_kernel(coordinates, states, [BACKWATERS, -BACKWATERS], UNSET, BACKWATERS, BACKWATERS, all_evols, **viability_kwargs)
+             # good_states, bad_state, succesful_state, work_state, evolutions,
+            viability_kernel(coordinates, states, 
+                    good_states=[BACKWATERS, -BACKWATERS], 
+                    bad_state=UNSET, 
+                    succesful_state=BACKWATERS, 
+                    work_state=BACKWATERS, 
+                    evolutions=all_evols, 
+                    **viability_kwargs)
 
             if not np.any(states == BACKWATERS):
                 printv('backwater empty')
@@ -960,7 +1003,13 @@ def topology_classification(coordinates, states, default_evols, management_evols
                 # calculate remaining downstream dark and sunny
                 printv('computing remaining downstream (dark and sunny)')
                 states[(states == UNSET)] = DARK_DOWN
-                viability_capture_basin(coordinates, states, [BACKWATERS, -SUNNY_DOWN, -DARK_DOWN], SUNNY_DOWN, UNSET, DARK_DOWN, all_evols, **viability_kwargs)
+                viability_capture_basin(coordinates, states, 
+                        target_states=[BACKWATERS, -SUNNY_DOWN, -DARK_DOWN], 
+                        reached_state=SUNNY_DOWN, 
+                        bad_state=UNSET, 
+                        work_state=DARK_DOWN, 
+                        evolutions=all_evols, 
+                        **viability_kwargs)
                 states[~is_sunny(coordinates) & (states == SUNNY_DOWN)] = DARK_DOWN
         else:
             printv('no management dynamics given, skipping downstream')
@@ -971,27 +1020,46 @@ def topology_classification(coordinates, states, default_evols, management_evols
 
         # look only at the coordinates with state == UNSET
         viability_capture_basin(coordinates, states,
-                                [SHELTER, GLADE, SUNNY_UP, DARK_UP, LAKE, BACKWATERS, SUNNY_DOWN, SUNNY_EDDIES, SUNNY_ABYSS, -SHELTER, -GLADE, -SUNNY_UP, -DARK_UP , -LAKE, -BACKWATERS, -SUNNY_DOWN, -SUNNY_EDDIES, -SUNNY_ABYSS],
-                                DARK_EDDIES, TRENCH, UNSET, all_evols, **viability_kwargs)
+                                target_states=[
+                                               SUNNY_EDDIES, -SUNNY_EDDIES, 
+                                               SUNNY_ABYSS, -SUNNY_ABYSS  # a tad imprecise that both negative states are in here
+                                               ],
+                                reached_state=DARK_EDDIES, 
+                                bad_state=TRENCH, 
+                                work_state=UNSET, 
+                                evolutions=all_evols, 
+                                **viability_kwargs)
         if compute_eddies:
 
             # the preliminary estimations for sunny and dark eddie are set
             states[(states == SUNNY_EDDIES)] = UNSET
             viability_capture_basin(coordinates, states,
-                                    [DARK_EDDIES, -DARK_EDDIES],
-                                    SUNNY_EDDIES, SUNNY_ABYSS, UNSET, all_evols, **viability_kwargs)
+                                    target_states=[DARK_EDDIES, -DARK_EDDIES],
+                                    reached_state=SUNNY_EDDIES, 
+                                    bad_state=SUNNY_ABYSS, 
+                                    work_state=UNSET, 
+                                    evolutions=all_evols, 
+                                    **viability_kwargs)
 
             for num in range(MAX_ITERATION_EDDIES):
                 states[(states == DARK_EDDIES)] = UNSET
                 changed = viability_capture_basin(coordinates, states,
-                                                  [SUNNY_EDDIES, -SUNNY_EDDIES],
-                                                  DARK_EDDIES, DARK_ABYSS, UNSET, all_evols, **viability_kwargs)
+                                                  target_states=[SUNNY_EDDIES, -SUNNY_EDDIES],
+                                                  reached_state=DARK_EDDIES, 
+                                                  bad_state=DARK_ABYSS, 
+                                                  work_state=UNSET, 
+                                                  evolutions=all_evols, 
+                                                  **viability_kwargs)
                 if not changed:
                     break
                 states[(states == SUNNY_EDDIES)] = UNSET
                 changed = viability_capture_basin(coordinates, states,
-                                                  [DARK_EDDIES, -DARK_EDDIES],
-                                                  SUNNY_EDDIES, SUNNY_ABYSS, UNSET, all_evols, **viability_kwargs)
+                                                  target_states=[DARK_EDDIES, -DARK_EDDIES],
+                                                  reached_state=SUNNY_EDDIES, 
+                                                  bad_state=SUNNY_ABYSS, 
+                                                  work_state=UNSET, 
+                                                  evolutions=all_evols, 
+                                                  **viability_kwargs)
                 if not changed:
                     break
             else:
