@@ -40,6 +40,8 @@ VERBOSITY = 0
 
 PRINT_PREFIX = ""
 PRINT_INFIX = " :"
+PRINT_INFIX_BEHIND = "( "
+PRINT_POSTFIX_BEHIND = " )"
 
 # The ones below are just used by the default pre-calculation hook and the
 # default state evaluation. They are just here so they are not used for
@@ -104,12 +106,18 @@ COLORS = {
         }
 
 
-def printv(*args, verbosity=1, **kwargs):
+def printv(*args, verbosity=1, date_behind = False, **kwargs):
     if "flush" not in kwargs:
         kwargs["flush"] = True
     if verbosity <= VERBOSITY:
         date = dt.datetime.now().ctime()
-        print(PRINT_PREFIX + date + PRINT_INFIX, *args, **kwargs)
+        
+        print_args = list(args)
+        if date_behind:
+            print_args.append(PRINT_INFIX_BEHIND + date + PRINT_POSTFIX_BEHIND)
+        else:
+            print_args.insert(0, PRINT_PREFIX + date + PRINT_INFIX)
+        print(*print_args, **kwargs)
 
 
 def printd(*args, **kwargs):
@@ -436,7 +444,7 @@ def pre_calculation_hook_kdtree(coordinates, states,
         KDTREE = periodkdt.PeriodicCKDTree(periodicity, coordinates)
     else:
         KDTREE = spat.cKDTree(coordinates)
-    printv("done")
+    printv("done", date_behind=True)
 
     OUT_OF_BOUNDS = not (out_of_bounds is False)
     if OUT_OF_BOUNDS:
