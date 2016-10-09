@@ -8,8 +8,6 @@ from .libviability import backscaling_grid, \
     plot_areas, \
     print_evaluation, \
     topology_classification, \
-    scaled_to_one_sunny, \
-    viability_capture_basin, \
-    viability_kernel
+    scaled_to_one_sunny
 
 
