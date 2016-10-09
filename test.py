@@ -246,6 +246,7 @@ EXAMPLES = {
                                  ftlm.sunny,
                                  [[-5, 5],[-5, 5]],
                                  out_of_bounds=True,
+                                 default_rhssPS=[ftlm.rhs_default_PS],
                                  management_rhssPS=[ftlm.rhs_management_PS],
                                  ),
             "aw-model-dg":
