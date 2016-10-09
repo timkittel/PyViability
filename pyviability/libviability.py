@@ -491,7 +491,8 @@ def pre_calculation_hook_kdtree(coordinates, states,
             "BOUNDS and coordinates do not fit together, did you set the correct grid_type argument?"
 
 
-def viability_kernel_step(coordinates, states, good_states, bad_state, succesful_state, work_state,
+def _viability_kernel_step(coordinates, states, *, 
+                          good_states, bad_states, succesful_states, work_states,
                           evolutions, state_evaluation,
                           use_numba=False,
                           nb_nopython=False):
@@ -511,7 +512,10 @@ def viability_kernel_step(coordinates, states, good_states, bad_state, succesful
         for index in neighbors:  # iterate over the base_index and, if any changes happened, over the neighbors, too
             old_state = states[index]
 
-            if old_state == work_state:
+            if old_state in work_states:
+                state_index = work_states.index(old_state)
+                succesful_state = succesful_states[state_index]
+                bad_state = bad_states[state_index]
                 new_state = viability_single_point(index, coordinates, states, good_states,
                                                    succesful_state, bad_state)
 
@@ -554,8 +558,8 @@ def get_neighbor_indices(index, shape, neighbor_list=[]):
 
 def _viability_kernel(coordinates, states, *, 
                      good_states, bad_state, succesful_state, work_state, evolutions,
-                     periodic_boundaries=[],
-                     state_evaluation=state_evaluation_kdtree
+                     state_evaluation,
+                     periodic_boundaries=[]
                      ):
     """calculate the viability kernel by iterating through the viability kernel steps
     until convergence (no further change)"""
@@ -569,9 +573,30 @@ def _viability_kernel(coordinates, states, *,
     # global x_half_step
     # x_half_step = x_step/2
 
+    try:
+       work_states = list(work_state)
+    except TypeError:
+        work_states = [work_state]
+
+    try:
+        succesful_states = list(succesful_state)
+    except TypeError:
+        succesful_states = [succesful_state]
+
+    try:
+        bad_states = list(bad_state)
+    except TypeError:
+        bad_states = [bad_state]
+
     # actually only one step is needed due to the recursive checks (i.e. first
     # checking all neighbors of a point that changed state)
-    return viability_kernel_step(coordinates, states, good_states, bad_state, succesful_state, work_state, evolutions, state_evaluation)
+    return _viability_kernel_step(coordinates, states, 
+                                  good_states=good_states, 
+                                  bad_states=bad_states, 
+                                  succesful_states=succesful_states, 
+                                  work_states=work_states, 
+                                  evolutions=evolutions, 
+                                  state_evaluation=state_evaluation)
 
 
 def _viability_capture_basin(coordinates, states, *,
@@ -861,7 +886,7 @@ def topology_classification(coordinates, states, default_evols, management_evols
     """calculates different regions of the state space using viability theory algorithms
     """
 
-    assert stop_when_finished in ["all", "shelter", "upstream"]
+    assert stop_when_finished in ["all", "shelter", "glade", "rest upstream", "lake", "upstream", "backwaters"]
 
     # upgrading initial states to higher is not yet implemented
     if upgradeable_initial_states:
@@ -910,7 +935,6 @@ def topology_classification(coordinates, states, default_evols, management_evols
 
     if all_evols:
         if default_evols:
-            # calculate shelter
             printv('computing shelter')
             states[(states == UNSET) & is_sunny(coordinates)] = SHELTER  # initial state for shelter calculation
             _viability_kernel(coordinates, states, 
@@ -932,7 +956,6 @@ def topology_classification(coordinates, states, default_evols, management_evols
 
             if not shelter_empty:
                 if management_evols:
-                    # calculate glade
                     printv('computing glade')
 
                     states[(states == UNSET) & is_sunny(coordinates)] = SUNNY_UP
@@ -947,6 +970,12 @@ def topology_classification(coordinates, states, default_evols, management_evols
                 else:
                     printv('no management dynamics given, skipping glade')
 
+                if stop_when_finished == "glade":
+                    # do the post computation hook (default, setting negative states positive)
+                    # and then exit
+                    post_computation_hook(coordinates, states)
+                    return 
+
                 # calculate remaining upstream dark and sunny
                 printv('computing rest of upstream (possibly containing lake, dark and sunny)')
                 states[(states == UNSET)] = DARK_UP
@@ -959,24 +988,41 @@ def topology_classification(coordinates, states, default_evols, management_evols
                                         **viability_kwargs)
 
                 states[~is_sunny(coordinates) & (states == SUNNY_UP)] = DARK_UP
+            if stop_when_finished in ["shelter", "glade", "rest upstream"]:
+                # do the post computation hook (default, setting negative states positive)
+                # and then exit
+                post_computation_hook(coordinates, states)
+                return 
 
-                if management_evols:
-                    # calculate Lake
-                    printv('computing lake')
-                    states[is_sunny(coordinates) & (states == SUNNY_UP)] = LAKE
-                    _viability_kernel(coordinates, states, 
-                            good_states=[SHELTER, -SHELTER, GLADE, -GLADE, LAKE, -LAKE], 
-                            bad_state=SUNNY_UP, 
-                            succesful_state=LAKE, 
-                            work_state=LAKE, 
-                            evolutions=all_evols,
-                            **viability_kwargs)
-                else:
-                    printv('no management dynamics given, skipping lake')
         else:
             printv('no default dynamics given, skipping upstream')
 
-        if stop_when_finished in ["shelter", "glade", "rest upstream", "lake", "upstream"]:
+        if stop_when_finished in ["shelter", "glade", "rest upstream"]:
+            # do the post computation hook (default, setting negative states positive)
+            # and then exit
+            post_computation_hook(coordinates, states)
+            return 
+
+        if management_evols:
+            # calculate Lake
+            printv('computing rest of manageable region (lake und backwaters)')
+            states[is_sunny(coordinates) & (states == SUNNY_UP)] = LAKE
+            states[is_sunny(coordinates) & (states == UNSET)] = BACKWATERS
+            _viability_kernel(coordinates, states, 
+                    good_states=[SHELTER, -SHELTER,
+                                 GLADE, -GLADE,
+                                 LAKE, -LAKE,
+                                 BACKWATERS, -BACKWATERS
+                                 ], 
+                    bad_state=[SUNNY_UP, UNSET], 
+                    succesful_state=[LAKE, BACKWATERS], 
+                    work_state=[LAKE, BACKWATERS], 
+                    evolutions=all_evols,
+                    **viability_kwargs)
+        else:
+            printv('no management dynamics given, skipping lake')
+
+        if stop_when_finished in ["lake", "upstream", "backwaters"]:
             # do the post computation hook (default, setting negative states positive)
             # and then exit
             post_computation_hook(coordinates, states)
@@ -984,18 +1030,6 @@ def topology_classification(coordinates, states, default_evols, management_evols
 
 
         if management_evols:
-            # calculate Bachwater
-            printv('computing backwater')
-            states[is_sunny(coordinates) & (states == UNSET)] = BACKWATERS
-             # good_states, bad_state, succesful_state, work_state, evolutions,
-            _viability_kernel(coordinates, states, 
-                    good_states=[BACKWATERS, -BACKWATERS], 
-                    bad_state=UNSET, 
-                    succesful_state=BACKWATERS, 
-                    work_state=BACKWATERS, 
-                    evolutions=all_evols, 
-                    **viability_kwargs)
-
             if not np.any(states == BACKWATERS):
                 printv('backwater empty')
                 backwater_empty = True

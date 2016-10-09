@@ -14,6 +14,7 @@ import PopulationAndResourceModel as prm
 import GravityPendulumModel as gpm
 import ConsumptionModel as cm
 import AWModel as awm
+import FiniteTimeLakeModel as ftlm
 
 
 import myPhaseSpaceL as mPS
@@ -142,7 +143,7 @@ def generate_example(default_rhss,
                                      )
         time_diff = time.time() - start_time
 
-        print("run time: {!s} s".format(dt.timedelta(seconds=time_diff)))
+        print("run time: {!s}".format(dt.timedelta(seconds=time_diff)))
 
         if backscaling:
             grid = viab.backscaling_grid(grid, scaling_factor, offset)
@@ -239,6 +240,14 @@ def generate_example(default_rhss,
 
 
 EXAMPLES = {
+            "finite-time-lake":
+                generate_example([ftlm.rhs_default],
+                                 [ftlm.rhs_management],
+                                 ftlm.sunny,
+                                 [[-5, 5],[-5, 5]],
+                                 out_of_bounds=True,
+                                 management_rhssPS=[ftlm.rhs_management_PS],
+                                 ),
             "aw-model-dg":
                 generate_example([awm.AW_rescaled_rhs],
                                  [awm.AW_rescaled_rhs],
