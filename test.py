@@ -33,7 +33,7 @@ import numba as nb
 def save_figure(filename, fig=None):
     if fig is None:
         fig = plt.gcf()
-    print("saveing to {!r} ... ".format(filename), end="", flush=True)
+    print("saving to {!r} ... ".format(filename), end="", flush=True)
     fig.savefig(filename)
     print("done")
 

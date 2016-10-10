@@ -27,7 +27,7 @@ if sys.version_info < required_python_version:
 
 
 setup(name="pyviability",
-      version="0.12",
+      version="0.13",
       description="a library for computation of viabilty sets and TSM sets",
       url="not yet there",
       author="Tim Kittel",
