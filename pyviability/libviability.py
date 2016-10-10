@@ -2,9 +2,6 @@ from __future__ import print_function, division, generators
 
 from . import PTopologyL as topo
 
-# helper currently not used, integration stuff needs to be updated for that
-# from . import helper
-
 from . import periodic_kdtree as periodkdt
 
 import numpy as np
@@ -54,7 +51,15 @@ BASIS_VECTORS_INV = None
 OUT_OF_BOUNDS = None
 COORDINATES = None
 ALL_NEIGHBORS_DISTANCE = None
-PATHS = ()
+
+
+# ---- stuff for remembering the paths ----
+PATHS = {}
+PATHS_LAKE = {}
+PATHS_INDEX_TYPE = np.int64
+PATHS_INDEX_DEFAULT = np.iinfo(PATHS_INDEX_TYPE).min
+PATHS_MANAGEMENT_TYPE = np.int16
+PATHS_MANAGEMENT_DEFAULT = np.iinfo(PATHS_MANAGEMENT_TYPE).min
 
 # ---- states ----
 # encode the different states as integers, so arrays of integers can be used
@@ -266,12 +271,10 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
                 if final_state in stop_states:  # and constraint(point) and final_distance < MAX_FINAL_DISTANCE:
 
                     if PATHS:
-                        PATHS[0][coordinate_index][:] = traj[-1]
-                        PATHS[1][coordinate_index] = final_index
-                        PATHS[2][coordinate_index] = evol_num
-        # PATHS = (np.copy(coordinates),  # for the target point
-                 # -np.ones((grid_size,), dtype=int),  # the coordinate where the target point get's associated to
-                 # -np.ones((grid_size,), dtype=np.int16) )  # for the number of the management option
+                        PATHS["reached point"][coordinate_index][:] = traj[-1]
+                        PATHS["next point index"][coordinate_index] = final_index
+                        PATHS["choice"][coordinate_index] = evol_num
+
                     if DEBUGGING:
                         print( "%i:" % evol_num, coordinate_index, start, start_state, "-->", final_state )
                     return succesful_state
@@ -902,10 +905,20 @@ def topology_classification(coordinates, states, default_evols, management_evols
     VERBOSITY = verbosity
 
     if remember_paths:
-        global PATHS
-        PATHS = (np.copy(coordinates),  # for the target point
-                 -np.ones((grid_size,), dtype=int),  # the coordinate where the target point get's associated to
-                 -np.ones((grid_size,), dtype=np.int16) )  # for the number of the management option
+        global PATHS, PATHS_LAKE
+        PATHS = {}
+        PATHS["reached point"] = np.copy(coordinates)  # for the target point
+        PATHS["next point index"] = np.ones((grid_size,), dtype=PATHS_INDEX_TYPE) * PATHS_INDEX_DEFAULT  # the coordinate where the target point get's associated to
+        PATHS["choice"] = np.ones((grid_size,), dtype=PATHS_MANAGEMENT_TYPE) * PATHS_MANAGEMENT_DEFAULT  # for the number of the management option
+
+        PATHS_LAKE = {}
+        PATHS_LAKE["reached point"] = np.copy(PATHS["reached point"])
+        PATHS_LAKE["next point index"] = np.copy(PATHS["next point index"])
+        PATHS_LAKE["choice"] = np.copy(PATHS["choice"])
+
+        # PATHS = (np.copy(coordinates),  # for the target point
+                 # -np.ones((grid_size,), dtype=int),  # the coordinate where the target point get's associated to
+                 # -np.ones((grid_size,), dtype=np.int16) )  # for the number of the management option
 
     if periodic_boundaries == []:
         periodic_boundaries = - np.ones(dim)
@@ -1004,6 +1017,8 @@ def topology_classification(coordinates, states, default_evols, management_evols
             return 
 
         if management_evols:
+            _PATHS = PATHS
+            PATHS = PATHS_LAKE
             # calculate Lake
             printv('computing rest of manageable region (lake und backwaters)')
             states[is_sunny(coordinates) & (states == SUNNY_UP)] = LAKE
@@ -1019,6 +1034,17 @@ def topology_classification(coordinates, states, default_evols, management_evols
                     work_state=[LAKE, BACKWATERS], 
                     evolutions=all_evols,
                     **viability_kwargs)
+            PATHS = _PATHS
+            # don't need to set back PATHS_LAKE as these are just references to the dictionaries anyway
+            del _PATHS  # just for keeping the code clean, not really necessary
+
+            # write the backwaters part to the normal mask
+            mask = (states == BACKWATERS)
+            PATHS["reached point"][mask] = PATHS_LAKE["reached point"][mask]
+            PATHS["next point index"][mask] = PATHS_LAKE["next point index"][mask]
+            PATHS["choice"][mask] = PATHS_LAKE["choice"][mask]
+            del mask
+
         else:
             printv('no management dynamics given, skipping lake')
 
