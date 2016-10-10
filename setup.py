@@ -1,12 +1,9 @@
 
 # run 'pip install -e .' in the command line for installation
 
-from __future__ import print_function
+from __future__ import print_function  # just for printing the error if python2.x is used
 
 from setuptools import setup
-
-import setuptools as st
-
 
 required_python_version = (3, 5)
 required_python_string=">=" + ".".join(map(str, required_python_version))
@@ -27,7 +24,7 @@ if sys.version_info < required_python_version:
 
 
 setup(name="pyviability",
-      version="0.13",
+      version="0.14",
       description="a library for computation of viabilty sets and TSM sets",
       url="not yet there",
       author="Tim Kittel",

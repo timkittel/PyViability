@@ -1,6 +1,15 @@
 # please add documentation!
 # and add which pep8 stuff we want to ignore
 
+import pkg_resources
+
+__version__ = pkg_resources.get_distribution(__package__).version
+"version string"
+__version_info__ = tuple(map(int, __version__.split(".")))
+"version tuple"
+
+del pkg_resources
+
 from .libviability import backscaling_grid, \
     generate_grid, \
     make_run_function, \
