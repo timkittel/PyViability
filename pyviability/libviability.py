@@ -35,6 +35,22 @@ MAX_ITERATION_EDDIES = 10
 DEBUGGING = 0
 VERBOSITY = 0
 
+
+# the stuff for remembering the status
+STATUS = ""
+STATUS_PREFIX = None
+
+TOPOLOGY_STEP_LIST = ["GENERAL", "SHELTER", "GLADE", "REMUP", "MANAGEABLE", "REMDOWN", "REST", "GENERAL", ""]  # the empty one is so that can be given, too
+STATUS_TOPOLOGY = "TOPOLOGY"
+STATUS_INFIX = " "
+STATUS_PREPARATION = "PREPARATION"
+STATUS_COMPUTATION = "COMPUTATION"
+STATUS_POSTPROCESSING = "POSTPROCESSING"
+STATUS_DONE = "DONE"
+STATUS_EDDIES_DARK = "EDDIES_DARK"
+STATUS_EDDIES_SUNNY = "EDDIES_SUNNY"
+
+# verbose printing stuff
 PRINT_PREFIX = ""
 PRINT_INFIX = " :"
 PRINT_INFIX_BEHIND = "( "
@@ -263,8 +279,6 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
 
             for evol_num, evol in enumerate(evolutions):
                 traj = evol(start, STEPSIZE)
-                # print(STEPSIZE)
-                # assert False
 
                 final_index, final_state = state_evaluation(traj)
 
@@ -873,6 +887,18 @@ def reset_initial_states(coordinates, states):
     states[(states < UNSET)] *= -1
 
 
+def set_global_status(*args, print_verbosity=None):
+    assert not STATUS_PREFIX is None, "STATUS_PREFIX has to be set, maybe you found a bug?"
+    global STATUS
+    STATUS = STATUS_INFIX.join((STATUS_PREFIX,) + args)
+    if print_verbosity is None:
+        print_verbosity = 2
+        if STATUS_PREFIX == STATUS_TOPOLOGY:
+            if args[1] == STATUS_PREPARATION:
+                print_verbosity = 1
+    printv(STATUS, verbosity=print_verbosity)
+
+
 def topology_classification(coordinates, states, default_evols, management_evols, is_sunny,
                             periodic_boundaries=[],
                             upgradeable_initial_states=False,
@@ -884,12 +910,21 @@ def topology_classification(coordinates, states, default_evols, management_evols
                             out_of_bounds=True,  # either bool or bool array with shape (dim, ) or shape (dim, 2) with values for each boundary
                             remember_paths=False,
                             verbosity=0,
-                            stop_when_finished="all",
+                            stop_when_finished=TOPOLOGY_STEP_LIST[-1],  # means everything goes
                             ):
     """calculates different regions of the state space using viability theory algorithms
     """
 
-    assert stop_when_finished in ["all", "shelter", "glade", "rest upstream", "lake", "upstream", "backwaters"]
+    global VERBOSITY
+    VERBOSITY = verbosity
+
+    global STATUS_PREFIX
+    STATUS_PREFIX = STATUS_TOPOLOGY
+    current_step = 0
+    set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_PREPARATION)
+    if isinstance(stop_when_finished, str):
+        stop_when_finished = TOPOLOGY_STEP_LIST.index(stop_when_finished)
+    assert isinstance(stop_when_finished, int) and stop_when_finished >= 0
 
     # upgrading initial states to higher is not yet implemented
     if upgradeable_initial_states:
@@ -901,11 +936,10 @@ def topology_classification(coordinates, states, default_evols, management_evols
     grid_size, dim = coordinates.shape
     assert states.shape == (grid_size,), "coordinates and states input doesn't match"
 
-    global VERBOSITY
-    VERBOSITY = verbosity
 
     if remember_paths:
-        global PATHS, PATHS_LAKE
+        printv("generating PATHS and PATHS_LAKE arrays")
+        global PATHS
         PATHS = {}
         PATHS["reached point"] = np.copy(coordinates)  # for the target point
         PATHS["next point index"] = np.ones((grid_size,), dtype=PATHS_INDEX_TYPE) * PATHS_INDEX_DEFAULT  # the coordinate where the target point get's associated to
@@ -947,9 +981,15 @@ def topology_classification(coordinates, states, default_evols, management_evols
     backwater_empty = False
 
     if all_evols:
-        if default_evols:
-            printv('computing shelter')
+        if not default_evols:
+            printv('no default dynamics given, skipping upstream')
+            current_step += 3
+        else:
+            # shelter computation
+            current_step += 1
+            set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_PREPARATION)
             states[(states == UNSET) & is_sunny(coordinates)] = SHELTER  # initial state for shelter calculation
+            set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION)
             _viability_kernel(coordinates, states, 
                     good_states=[SHELTER, -SHELTER], 
                     bad_state=UNSET, 
@@ -957,41 +997,46 @@ def topology_classification(coordinates, states, default_evols, management_evols
                     work_state=SHELTER, 
                     evolutions=default_evols,
                     **viability_kwargs)
+            set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_DONE)
             if stop_when_finished == "shelter":
                 # do the post computation hook (default, setting negative states positive)
                 # and then exit
                 post_computation_hook(coordinates, states)
                 return 
 
-            if not np.any(states == SHELTER):
-                printv('shelter empty')
-                shelter_empty = True
+            if not np.any(states == SHELTER):  # shelter is empty?
+                printv('shelter empty, skip rest of upstream')
+                current_step += 2
+            else:
+                current_step += 1
+                if not management_evols:
+                    printv('no management dynamics given, skipping glade')
+                else:
 
-            if not shelter_empty:
-                if management_evols:
-                    printv('computing glade')
-
+                    set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_PREPARATION)
                     states[(states == UNSET) & is_sunny(coordinates)] = SUNNY_UP
 
-                    # viability_capture_basin(coordinates, states, target_states, reached_state, bad_state, work_state, evolutions, **viability_kwargs):
+                    # glade computation
+                    set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION)
                     _viability_capture_basin(coordinates, states, 
                             target_states=[SHELTER, -SHELTER], 
                             reached_state=GLADE, 
                             bad_state=UNSET, 
                             work_state=SUNNY_UP, 
                             evolutions=all_evols, **viability_kwargs)
-                else:
-                    printv('no management dynamics given, skipping glade')
+                    set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_DONE)
 
-                if stop_when_finished == "glade":
+                if stop_when_finished <= current_step:
                     # do the post computation hook (default, setting negative states positive)
                     # and then exit
                     post_computation_hook(coordinates, states)
                     return 
 
-                # calculate remaining upstream dark and sunny
-                printv('computing rest of upstream (possibly containing lake, dark and sunny)')
+                current_step += 1
+                # computation remaining upstream dark and sunny (containing possible lake)
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_PREPARATION)
                 states[(states == UNSET)] = DARK_UP
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION)
                 _viability_capture_basin(coordinates, states, 
                                         target_states=[SHELTER, -SHELTER, GLADE, -GLADE, -SUNNY_UP, -DARK_UP, -LAKE], 
                                         reached_state=SUNNY_UP, 
@@ -1000,32 +1045,37 @@ def topology_classification(coordinates, states, default_evols, management_evols
                                         evolutions=all_evols,
                                         **viability_kwargs)
 
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_POSTPROCESSING)
                 states[~is_sunny(coordinates) & (states == SUNNY_UP)] = DARK_UP
-            if stop_when_finished in ["shelter", "glade", "rest upstream"]:
-                # do the post computation hook (default, setting negative states positive)
-                # and then exit
-                post_computation_hook(coordinates, states)
-                return 
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_DONE)
 
-        else:
-            printv('no default dynamics given, skipping upstream')
+        assert current_step == TOPOLOGY_STEP_LIST.index("REMUP"), "consistency check failed, bug? ({} != {})".format(current_step, TOPOLOGY_STEP_LIST.index("REMUP"))
 
-        if stop_when_finished in ["shelter", "glade", "rest upstream"]:
+        if stop_when_finished <= current_step:
             # do the post computation hook (default, setting negative states positive)
             # and then exit
             post_computation_hook(coordinates, states)
             return 
 
-        if management_evols:
-            _PATHS = PATHS
-            PATHS = PATHS_LAKE
-            # calculate Lake
-            printv('computing rest of manageable region (lake und backwaters)')
+
+        if not management_evols:
+            printv('no management dynamics given, skipping lake and downstream')
+            current_step += 2
+        else:
+            current_step += 1
+            assert current_step == TOPOLOGY_STEP_LIST.index("MANAGEABLE"), "consistency check failed, bug? ({} != {})".format(current_step, TOPOLOGY_STEP_LIST.index("MANAGEABLE"))
+            if remember_paths:
+                _PATHS = PATHS
+                PATHS = PATHS_LAKE
+            # compute rest of manageable region (lake + backwaters)
+            set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_PREPARATION)
             states[is_sunny(coordinates) & (states == SUNNY_UP)] = LAKE
             states[is_sunny(coordinates) & (states == UNSET)] = BACKWATERS
+            set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION)
             _viability_kernel(coordinates, states, 
-                    good_states=[SHELTER, -SHELTER,
-                                 GLADE, -GLADE,
+                    good_states=[
+                                 SHELTER, -SHELTER,  # these should not be possible to be reached
+                                 GLADE, -GLADE,  # these should not be possible to be reached
                                  LAKE, -LAKE,
                                  BACKWATERS, -BACKWATERS
                                  ], 
@@ -1034,36 +1084,40 @@ def topology_classification(coordinates, states, default_evols, management_evols
                     work_state=[LAKE, BACKWATERS], 
                     evolutions=all_evols,
                     **viability_kwargs)
-            PATHS = _PATHS
-            # don't need to set back PATHS_LAKE as these are just references to the dictionaries anyway
-            del _PATHS  # just for keeping the code clean, not really necessary
+            if remember_paths:
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_POSTPROCESSING)
+                PATHS = _PATHS
+                # don't need to set back PATHS_LAKE as these are just references to the dictionaries anyway
+                del _PATHS  # just for keeping the code clean, not really necessary
 
-            # write the backwaters part to the normal mask
-            mask = (states == BACKWATERS)
-            PATHS["reached point"][mask] = PATHS_LAKE["reached point"][mask]
-            PATHS["next point index"][mask] = PATHS_LAKE["next point index"][mask]
-            PATHS["choice"][mask] = PATHS_LAKE["choice"][mask]
-            del mask
-
-        else:
-            printv('no management dynamics given, skipping lake')
-
-        if stop_when_finished in ["lake", "upstream", "backwaters"]:
-            # do the post computation hook (default, setting negative states positive)
-            # and then exit
-            post_computation_hook(coordinates, states)
-            return 
+                # write the backwaters part to the normal mask
+                mask = (states == BACKWATERS)
+                PATHS["reached point"][mask] = PATHS_LAKE["reached point"][mask]
+                PATHS["next point index"][mask] = PATHS_LAKE["next point index"][mask]
+                PATHS["choice"][mask] = PATHS_LAKE["choice"][mask]
+                del mask
+                if not np.any(states == LAKE):
+                    printv("no lake found, removing PATHS_LAKE arrays")
+                    PATHS_LAKE = {}
+            set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_DONE)
 
 
-        if management_evols:
+            if stop_when_finished <= current_step:
+                # do the post computation hook (default, setting negative states positive)
+                # and then exit
+                post_computation_hook(coordinates, states)
+                return 
+
+
+            current_step += 1
             if not np.any(states == BACKWATERS):
-                printv('backwater empty')
-                backwater_empty = True
-
-            if not backwater_empty:
+                printv('backwater empty, skip remaining downstream')
+            else:
                 # calculate remaining downstream dark and sunny
-                printv('computing remaining downstream (dark and sunny)')
+                assert current_step == TOPOLOGY_STEP_LIST.index("REMDOWN"), "consistency check failed, bug? ({} != {})".format(current_step, TOPOLOGY_STEP_LIST.index("REMDOWN"))
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_PREPARATION)
                 states[(states == UNSET)] = DARK_DOWN
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION)
                 _viability_capture_basin(coordinates, states, 
                         target_states=[BACKWATERS, -SUNNY_DOWN, -DARK_DOWN], 
                         reached_state=SUNNY_DOWN, 
@@ -1071,15 +1125,23 @@ def topology_classification(coordinates, states, default_evols, management_evols
                         work_state=DARK_DOWN, 
                         evolutions=all_evols, 
                         **viability_kwargs)
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_POSTPROCESSING)
                 states[~is_sunny(coordinates) & (states == SUNNY_DOWN)] = DARK_DOWN
-        else:
-            printv('no management dynamics given, skipping downstream')
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_DONE)
 
+        if stop_when_finished <= current_step:
+            # do the post computation hook (default, setting negative states positive)
+            # and then exit
+            post_computation_hook(coordinates, states)
+            return 
+
+        current_step += 1
         # calculate trench and set the rest as preliminary estimation for the eddies
-        printv('computing dark Eddies/Abyss')
+        set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_PREPARATION)
         states[is_sunny(coordinates) & (states == UNSET)] = SUNNY_EDDIES
 
         # look only at the coordinates with state == UNSET
+        set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION)
         _viability_capture_basin(coordinates, states,
                                 target_states=[
                                                SUNNY_EDDIES, -SUNNY_EDDIES, 
@@ -1090,10 +1152,18 @@ def topology_classification(coordinates, states, default_evols, management_evols
                                 work_state=UNSET, 
                                 evolutions=all_evols, 
                                 **viability_kwargs)
-        if compute_eddies:
+        if not compute_eddies:
+            # assume all eddies are abysses
+            set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_POSTPROCESSING)
+            states[(states == SUNNY_EDDIES)] = SUNNY_ABYSS
+            states[(states == UNSET)] = DARK_ABYSS
+            states[(states == DARK_EDDIES)] = DARK_ABYSS
+        else:
 
             # the preliminary estimations for sunny and dark eddie are set
+            set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION, STATUS_EDDIES_SUNNY, STATUS_PREPARATION)
             states[(states == SUNNY_EDDIES)] = UNSET
+            set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION, STATUS_EDDIES_SUNNY, STATUS_COMPUTATION)
             _viability_capture_basin(coordinates, states,
                                     target_states=[DARK_EDDIES, -DARK_EDDIES],
                                     reached_state=SUNNY_EDDIES, 
@@ -1101,9 +1171,12 @@ def topology_classification(coordinates, states, default_evols, management_evols
                                     work_state=UNSET, 
                                     evolutions=all_evols, 
                                     **viability_kwargs)
+            set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION, STATUS_EDDIES_SUNNY, STATUS_DONE)
 
             for num in range(MAX_ITERATION_EDDIES):
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION, STATUS_EDDIES_DARK, STATUS_PREPARATION)
                 states[(states == DARK_EDDIES)] = UNSET
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION, STATUS_EDDIES_DARK, STATUS_COMPUTATION)
                 changed = _viability_capture_basin(coordinates, states,
                                                   target_states=[SUNNY_EDDIES, -SUNNY_EDDIES],
                                                   reached_state=DARK_EDDIES, 
@@ -1111,9 +1184,12 @@ def topology_classification(coordinates, states, default_evols, management_evols
                                                   work_state=UNSET, 
                                                   evolutions=all_evols, 
                                                   **viability_kwargs)
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION, STATUS_EDDIES_DARK, STATUS_DONE)
                 if not changed:
                     break
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION, STATUS_EDDIES_SUNNY, STATUS_PREPARATION)
                 states[(states == SUNNY_EDDIES)] = UNSET
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION, STATUS_EDDIES_SUNNY, STATUS_COMPUTATION)
                 changed = _viability_capture_basin(coordinates, states,
                                                   target_states=[DARK_EDDIES, -DARK_EDDIES],
                                                   reached_state=SUNNY_EDDIES, 
@@ -1121,20 +1197,28 @@ def topology_classification(coordinates, states, default_evols, management_evols
                                                   work_state=UNSET, 
                                                   evolutions=all_evols, 
                                                   **viability_kwargs)
+                set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_COMPUTATION, STATUS_EDDIES_SUNNY, STATUS_DONE)
                 if not changed:
                     break
             else:
                 warn.warn("reached MAX_ITERATION_EDDIES = %i during the Eddies calculation"%MAX_ITERATION_EDDIES)
-        else:
-            # assume all eddies are abysses
-                states[(states == SUNNY_EDDIES)] = SUNNY_ABYSS
-                states[(states == UNSET)] = DARK_ABYSS
-                states[(states == DARK_EDDIES)] = DARK_ABYSS
+    set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_DONE)
+
+    current_step += 1
+    assert current_step == len(TOPOLOGY_STEP_LIST) - 2, "consistency check failed, bug? ({} != {})".format(current_step, len(TOPOLOGY_STEP_LIST) - 2)
+    # there is a -2 in the assert statement because a trailing '""' is added to 'TOPOLOGY_STEP_LIST' in order to have '""' as the default for 'stop_when_finished'
 
     # computation is done,
     # do the post computation hook (default, setting negative states positive)
     # and then exit
+    set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_POSTPROCESSING)
     post_computation_hook(coordinates, states)
+    set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_DONE)
+
+    # clean up
+    global STATUS, STATUS_PREFIX
+    STATUS = ""
+    STATUS_PREFIX = None
 
     return 
 

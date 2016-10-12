@@ -30,6 +30,9 @@ import functools as ft
 import numba as nb
 
 
+PRINT_VERBOSITY = 2
+
+
 def save_figure(filename, fig=None):
     if fig is None:
         fig = plt.gcf()
@@ -139,7 +142,7 @@ def generate_example(default_rhss,
                                      compute_eddies=compute_eddies,
                                      out_of_bounds=out_of_bounds,
                                      stop_when_finished=stop_when_finished,
-                                     verbosity=2,
+                                     verbosity=PRINT_VERBOSITY,
                                      )
         time_diff = time.time() - start_time
 
@@ -340,6 +343,7 @@ EXAMPLES = {
                                      dict(phi = 4, r = 0.04, gamma = 8 * 10 ** (-6), delta = -0.15, kappa = 6000)],
                                  management_parameters=[
                                      dict(phi = 4, r = 0.04, gamma = 11.2 * 10 ** (-6), delta = -0.15, kappa = 6000)],
+                                 compute_eddies=True,
                                  ),
             "consum":
                 generate_example([],
@@ -397,8 +401,9 @@ if __name__ == "__main__":
                         " (might be slow for a large grids)")
     parser.add_argument("-s", "--save", metavar="output-file", nargs="?", default="",
                         help="save the picture; if no 'output-file' is given, a name is generated")
-    parser.add_argument("--stop-when-finished", default="all", metavar="region",
-                        help="stop when the computation of 'region' is finished") 
+    parser.add_argument("--stop-when-finished", default=lv.TOPOLOGY_STEP_LIST[-1], metavar="computation-step",
+                        choices=lv.TOPOLOGY_STEP_LIST,
+                        help="stop when the computation of 'computation-step' is finished, choose from: " ", ".join(lv.TOPOLOGY_STEP_LIST) ) 
     parser.add_argument("--no-numba", dest="use_numba", action="store_false",
                         help="do not use numba jit-compiling")
 
