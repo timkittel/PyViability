@@ -264,9 +264,10 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
 
             global DEBUGGING, PATHS
             # DEBUGGING = True
+            # DEBUGGING = DEBUGGING and STATUS == "TOPOLOGY MANAGEABLE COMPUTATION"
             # DEBUGGING = DEBUGGING and (start_state == 1)
             # DEBUGGING = (coordinate_index == (10 * 80 - 64,))
-            # DEBUGGING = DEBUGGING and la.norm(start - np.array([ 0.51253769,  0.97392462,  1.        ])) < 0.02
+            # DEBUGGING = DEBUGGING and la.norm(start - np.array([0.0777,  0.947,  1.])) < 0.05
             # DEBUGGING = DEBUGGING and la.norm(start - np.array([0.008, 0.747])) < 0.001
             # DEBUGGING = DEBUGGING and start[0] < 0.01
             # DEBUGGING = DEBUGGING and start_state == 1
@@ -274,8 +275,8 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
             # DEBUGGING = True
             # print("DEBUGGING", DEBUGGING)
 
-            if DEBUGGING:
-                print()
+            # if DEBUGGING:
+                # print()
 
             for evol_num, evol in enumerate(evolutions):
                 traj = evol(start, STEPSIZE)
@@ -400,6 +401,7 @@ def _state_evaluation_kdtree_line(traj):
 
 # @nb.jit
 def state_evaluation_kdtree_numba(traj):
+    # global DEBUGGING
     point = traj[-1]
 
     if OUT_OF_BOUNDS:
@@ -414,12 +416,14 @@ def state_evaluation_kdtree_numba(traj):
                 out = True
                 break
         if out:
+            # DEBUGGING = False
             if DEBUGGING:
                 print("out-of-bounds")
             return -1, OUT_OF_BOUNDS_STATE
 
     _, tree_index = KDTREE.query(point, 1)
 
+    # DEBUGGING = DEBUGGING and (STATES[tree_index] in [-1, 1, -2, 2])
     if DEBUGGING:
         print("evaluation:", traj[0], "via", traj[1], "to", KDTREE.data[tree_index], "with state", STATES[tree_index])
 
@@ -550,7 +554,7 @@ def get_neighbor_indices_via_cKD(index, neighbor_list=[]):
 
     index = np.asarray(index).astype(int)
 
-    tree_neighbors = KDTREE.query_ball_point(KDTREE.data[index].flatten(), MAX_NEIGHBOR_DISTANCE)
+    tree_neighbors = KDTREE.query_ball_point(KDTREE.data[index].flatten(), STEPSIZE + BOUNDS_EPSILON)
 
     neighbor_list.extend(tree_neighbors)
 
@@ -634,7 +638,7 @@ def _viability_capture_basin(coordinates, states, *,
                          )
         # changed = (num_work == np.count_nonzero(reached_state == states))
     else:
-        printv("empty work or target set", verbosity=2)
+        printv("capture basin: empty work or target set", verbosity=2)
         # changed = False
     # all the points that still have the state work_state are not part of the capture basin and are set to be bad_states
     changed = (work_state in states)
@@ -939,7 +943,7 @@ def topology_classification(coordinates, states, default_evols, management_evols
 
     if remember_paths:
         printv("generating PATHS and PATHS_LAKE arrays")
-        global PATHS
+        global PATHS, PATHS_LAKE
         PATHS = {}
         PATHS["reached point"] = np.copy(coordinates)  # for the target point
         PATHS["next point index"] = np.ones((grid_size,), dtype=PATHS_INDEX_TYPE) * PATHS_INDEX_DEFAULT  # the coordinate where the target point get's associated to
@@ -1095,6 +1099,8 @@ def topology_classification(coordinates, states, default_evols, management_evols
                 PATHS["reached point"][mask] = PATHS_LAKE["reached point"][mask]
                 PATHS["next point index"][mask] = PATHS_LAKE["next point index"][mask]
                 PATHS["choice"][mask] = PATHS_LAKE["choice"][mask]
+                PATHS_LAKE["next point index"][mask] = PATHS_INDEX_DEFAULT
+                PATHS_LAKE["choice"][mask] = PATHS_MANAGEMENT_DEFAULT
                 del mask
                 if not np.any(states == LAKE):
                     printv("no lake found, removing PATHS_LAKE arrays")
@@ -1216,7 +1222,7 @@ def topology_classification(coordinates, states, default_evols, management_evols
     set_global_status(TOPOLOGY_STEP_LIST[current_step], STATUS_DONE)
 
     # clean up
-    global STATUS, STATUS_PREFIX
+    global STATUS
     STATUS = ""
     STATUS_PREFIX = None
 
