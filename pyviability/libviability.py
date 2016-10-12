@@ -30,6 +30,9 @@ warn.filterwarnings("error", category=integ.odepack.ODEintWarning)
 BOUNDS_EPSILON = None  # should be set during grid Generation
 STEPSIZE = None
 
+INDEX_TYPE = np.int64
+INDEX_TYPE_NB = nb.int64
+
 # some constants so the calculation does end
 MAX_ITERATION_EDDIES = 10
 DEBUGGING = 0
@@ -72,7 +75,7 @@ ALL_NEIGHBORS_DISTANCE = None
 # ---- stuff for remembering the paths ----
 PATHS = {}
 PATHS_LAKE = {}
-PATHS_INDEX_TYPE = np.int64
+PATHS_INDEX_TYPE = INDEX_TYPE
 PATHS_INDEX_DEFAULT = np.iinfo(PATHS_INDEX_TYPE).min
 PATHS_MANAGEMENT_TYPE = np.int16
 PATHS_MANAGEMENT_DEFAULT = np.iinfo(PATHS_MANAGEMENT_TYPE).min
@@ -417,15 +420,15 @@ def state_evaluation_kdtree_numba(traj):
                 break
         if out:
             # DEBUGGING = False
-            if DEBUGGING:
-                print("out-of-bounds")
+            # if DEBUGGING:
+                # print("out-of-bounds")
             return -1, OUT_OF_BOUNDS_STATE
 
     _, tree_index = KDTREE.query(point, 1)
 
     # DEBUGGING = DEBUGGING and (STATES[tree_index] in [-1, 1, -2, 2])
-    if DEBUGGING:
-        print("evaluation:", traj[0], "via", traj[1], "to", KDTREE.data[tree_index], "with state", STATES[tree_index])
+    # if DEBUGGING:
+        # print("evaluation:", traj[0], "via", traj[1], "to", KDTREE.data[tree_index], "with state", STATES[tree_index])
 
     return tree_index, STATES[tree_index]
 
@@ -512,6 +515,44 @@ def pre_calculation_hook_kdtree(coordinates, states,
             "BOUNDS and coordinates do not fit together, did you set the correct grid_type argument?"
 
 
+# def extend_list(mylist, mylist2):
+    # num_added = 0
+    # for el2 in mylist2:
+        # if el2 not in mylist:
+            # num_added += 1
+            # mylist.append(el2)
+    # return num_added
+# 
+# class RemovingSetWrapper(object):
+    # def __init__(self, initial=[]):
+        # self._internal_list = [0]
+        # self._len = extend_list(self._internal_list, initial)
+        # self._internal_list.pop(0)
+    # def extend(self, newlist):
+        # if newlist:
+            # self._len += extend_list(self._internal_list, newlist)
+    # def __iter__(self):
+        # return self
+    # def __next__(self):
+        # if self._len:
+            # self._len -= 1
+            # return self._internal_list.pop(0)
+        # else:
+            # raise StopIteration
+
+
+class RemovingSetWrapper(set):
+    def __iter__(self):
+        return self
+    def __next__(self):
+        if len(self):
+            return self.pop()
+        else:
+            raise StopIteration
+
+
+
+
 def _viability_kernel_step(coordinates, states, *, 
                           good_states, bad_states, succesful_states, work_states,
                           evolutions, state_evaluation,
@@ -528,7 +569,8 @@ def _viability_kernel_step(coordinates, states, *,
                                                               use_numba=use_numba, nb_nopython=nb_nopython)
 
     for base_index in range(max_index):
-        neighbors = [base_index]
+        neighbors = RemovingSetWrapper([base_index])
+        # neighbors = [base_index]
 
         for index in neighbors:  # iterate over the base_index and, if any changes happened, over the neighbors, too
             old_state = states[index]
@@ -556,7 +598,8 @@ def get_neighbor_indices_via_cKD(index, neighbor_list=[]):
 
     tree_neighbors = KDTREE.query_ball_point(KDTREE.data[index].flatten(), STEPSIZE + BOUNDS_EPSILON)
 
-    neighbor_list.extend(tree_neighbors)
+    neighbor_list.update(tree_neighbors)
+    # neighbor_list.extend(tree_neighbors)
 
     return neighbor_list
 
