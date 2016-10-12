@@ -515,32 +515,6 @@ def pre_calculation_hook_kdtree(coordinates, states,
             "BOUNDS and coordinates do not fit together, did you set the correct grid_type argument?"
 
 
-# def extend_list(mylist, mylist2):
-    # num_added = 0
-    # for el2 in mylist2:
-        # if el2 not in mylist:
-            # num_added += 1
-            # mylist.append(el2)
-    # return num_added
-# 
-# class RemovingSetWrapper(object):
-    # def __init__(self, initial=[]):
-        # self._internal_list = [0]
-        # self._len = extend_list(self._internal_list, initial)
-        # self._internal_list.pop(0)
-    # def extend(self, newlist):
-        # if newlist:
-            # self._len += extend_list(self._internal_list, newlist)
-    # def __iter__(self):
-        # return self
-    # def __next__(self):
-        # if self._len:
-            # self._len -= 1
-            # return self._internal_list.pop(0)
-        # else:
-            # raise StopIteration
-
-
 class RemovingSetWrapper(set):
     def __iter__(self):
         return self
@@ -549,8 +523,6 @@ class RemovingSetWrapper(set):
             return self.pop()
         else:
             raise StopIteration
-
-
 
 
 def _viability_kernel_step(coordinates, states, *, 
