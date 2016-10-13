@@ -19,4 +19,6 @@ from .libviability import backscaling_grid, \
     topology_classification, \
     scaled_to_one_sunny
 
+from .libviability import get_global_status as get_computation_status
+
 

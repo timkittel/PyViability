@@ -918,6 +918,10 @@ def set_global_status(*args, print_verbosity=None):
     printv(STATUS, verbosity=print_verbosity)
 
 
+def get_global_status():
+    return STATUS
+
+
 def topology_classification(coordinates, states, default_evols, management_evols, is_sunny,
                             periodic_boundaries=[],
                             upgradeable_initial_states=False,
