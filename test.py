@@ -33,7 +33,6 @@ import time
 import sys
 
 
-
 PRINT_VERBOSITY = 2
 
 
