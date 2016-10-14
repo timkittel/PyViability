@@ -1,33 +1,37 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
+
 from __future__ import division, print_function
 
-
+# viability imports
 import pyviability as viab
 from pyviability import helper
 from pyviability import libviability as lv
 from pyviability import PTopologyL as topo
 
-import PlantModel as pm
-import TechChangeModel as tcm
-import PopulationAndResourceModel as prm
-import GravityPendulumModel as gpm
-import ConsumptionModel as cm
+# model imports
 import AWModel as awm
+import ConsumptionModel as cm
 import FiniteTimeLakeModel as ftlm
+import FiniteTimeLakeModel2 as ftlm2
+import GravityPendulumModel as gpm
+import PlantModel as pm
+import PopulationAndResourceModel as prm
+import TechChangeModel as tcm
 
-
+# phase space plotting import
 import myPhaseSpaceL as mPS
 
-import sys
-import time
+# other useful stuff
 import argparse, argcomplete
-
-import matplotlib.pyplot as plt
-import numpy as np
 import datetime as dt
 import functools as ft
+import matplotlib.pyplot as plt
 import numba as nb
+import numpy as np
+import time
+import sys
+
 
 
 PRINT_VERBOSITY = 2
@@ -251,6 +255,14 @@ EXAMPLES = {
                                  out_of_bounds=True,
                                  default_rhssPS=[ftlm.rhs_default_PS],
                                  management_rhssPS=[ftlm.rhs_management_PS],
+                                 ),
+            "finite-time-lake2":
+                generate_example(
+                                 [ftlm2.rhs_default],
+                                 [ftlm2.rhs_management],
+                                 ftlm2.sunny,
+                                 [[-5, 5],[-5, 5]],
+                                 out_of_bounds=True,
                                  ),
             "aw-model-dg":
                 generate_example([awm.AW_rescaled_rhs],
