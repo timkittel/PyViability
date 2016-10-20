@@ -4,8 +4,8 @@ import numpy as np
 
 def rhs_default(z, t=0):
     x, y = z
-    dxdt = (x + 0.5) * (x - 1) * (2 - x)
-    dydt = -y
+    dxdt = x * (x - 1) * (2 - x)
+    dydt = (-1-y) * 15
     return dxdt, dydt
 
 

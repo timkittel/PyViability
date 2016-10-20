@@ -2,7 +2,7 @@ from __future__ import division
 
 import numpy as np
 
-def consum_rhs(xy, t, u):
+def consum_rhs(xy, t=0, u=0):
     x, y = xy
 
     dx = x - y

@@ -19,7 +19,11 @@ import matplotlib.pyplot as plt
 import warnings as warn
 
 import itertools as it
+import functools as ft
 import datetime as dt
+
+# flush the output of print by default
+print = ft.partial(print, flush=True)
 
 # raise the odeing warning as an error because it indicates that we are at a
 # fixed point (or the grid is not fine enough)
