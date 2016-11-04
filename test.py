@@ -272,6 +272,16 @@ EXAMPLES = {
                                  management_parameters=[{"beta":awm.beta_DG, "theta":awm.theta_default}],
                                  out_of_bounds=False,
                                  ),
+            "aw-model-dg-bifurc":
+                generate_example([awm.AW_rescaled_rhs],
+                                 [awm.AW_rescaled_rhs],
+                                 awm.AW_rescaled_sunny,
+                                 [[1e-8, 1 - 1e-8],[1e-8, 1 - 1e-8]],
+                                 default_parameters=[{"beta":awm.beta_default, "theta":awm.theta_default}],
+                                 management_parameters=[{"beta":3*awm.beta_DG, "theta":awm.theta_default}],
+                                 out_of_bounds=False,
+                                 compute_eddies=True,
+                                 ),
             "aw-model-srm":
                 generate_example([awm.AW_rescaled_rhs],
                                  [awm.AW_rescaled_rhs],
