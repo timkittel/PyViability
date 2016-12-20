@@ -57,6 +57,8 @@ def generate_example(default_rhss,
                      out_of_bounds=True,
                      compute_eddies=False,
                      rescaling_epsilon=0.,
+                     xlabel=None,
+                     ylabel=None,
                      ):
 
     plotPS = lambda rhs, boundaries, style: mPS.plotPhaseSpace(rhs, [boundaries[0][0], boundaries[1][0], boundaries[0][1], boundaries[1][1]], colorbar=False, style=style)
@@ -133,7 +135,7 @@ def generate_example(default_rhss,
 
         # print(lv.STEPSIZE)
         # lv.STEPSIZE = 2 * x_step
-        lv.STEPSIZE = 2 * x_step * max([1, np.sqrt( n0 / 80 )])  # prop to 1/sqrt(n0)
+        lv.STEPSIZE = 2 * x_step * max([1, np.sqrt( n0 / 40 )])  # prop to 1/sqrt(n0)
         # print(lv.STEPSIZE)
         # assert False
         print("STEPSIZE / x_step = {:5.3f}".format(lv.STEPSIZE / x_step))
@@ -169,6 +171,8 @@ def generate_example(default_rhss,
 
                 plt.xlim(xlim)
                 plt.ylim(ylim)
+                plt.xlabel(xlabel)
+                plt.ylabel(ylabel)
 
                 if save_to:
                     save_figure(save_to)
@@ -189,6 +193,8 @@ def generate_example(default_rhss,
 
                 plt.xlim(xlim)
                 plt.ylim(ylim)
+                plt.xlabel(xlabel)
+                plt.ylabel(ylabel)
 
                 if save_to:
                     save_figure(save_to)
@@ -262,6 +268,8 @@ EXAMPLES = {
                                  ftlm2.sunny,
                                  [[-5, 5],[-5, 5]],
                                  out_of_bounds=True,
+                                 xlabel="$x$",
+                                 ylabel="$y$",
                                  ),
             "aw-model-dg":
                 generate_example([awm.AW_rescaled_rhs],
