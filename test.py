@@ -171,8 +171,10 @@ def generate_example(default_rhss,
 
                 plt.xlim(xlim)
                 plt.ylim(ylim)
-                plt.xlabel(xlabel)
-                plt.ylabel(ylabel)
+                if xlabel is not None:
+                    plt.xlabel(xlabel)
+                if ylabel is not None:
+                    plt.ylabel(ylabel)
 
                 if save_to:
                     save_figure(save_to)
@@ -193,8 +195,10 @@ def generate_example(default_rhss,
 
                 plt.xlim(xlim)
                 plt.ylim(ylim)
-                plt.xlabel(xlabel)
-                plt.ylabel(ylabel)
+                if xlabel is not None:
+                    plt.xlabel(xlabel)
+                if ylabel is not None:
+                    plt.ylabel(ylabel)
 
                 if save_to:
                     save_figure(save_to)
