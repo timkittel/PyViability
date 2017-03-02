@@ -10,17 +10,14 @@ from pyviability import libviability as lv
 from pyviability import PTopologyL as topo
 
 # model imports
-import AWModel as awm
-import ConsumptionModel as cm
-import FiniteTimeLakeModel as ftlm
-import FiniteTimeLakeModel2 as ftlm2
-import GravityPendulumModel as gpm
-import PlantModel as pm
-import PopulationAndResourceModel as prm
-import TechChangeModel as tcm
-
-# phase space plotting import
-import myPhaseSpaceL as mPS
+import tests.AWModel as awm
+import tests.ConsumptionModel as cm
+import tests.FiniteTimeLakeModel as ftlm
+import tests.FiniteTimeLakeModel2 as ftlm2
+import tests.GravityPendulumModel as gpm
+import tests.PlantModel as pm
+import tests.PopulationAndResourceModel as prm
+import tests.TechChangeModel as tcm
 
 # other useful stuff
 import argparse, argcomplete
@@ -46,6 +43,106 @@ def save_figure(filename, fig=None):
     print("done")
 
 
+def plotPhaseSpace( evol, boundaries, steps = 2000, xlabel = "", ylabel = "", colorbar = True, style = {}, alpha = None , maskByCond = None, invertAxes = False, ax = plt, lwspeed = False):
+	"""\
+plotPhaseSpace( evol, (Xmin, Ymin, Xmax, Ymax), steps = 2000, xlabel = "", ylabel = "", colorbar = True, style = {}, alpha = None , zeroByCond = None, transPlot = "x"):
+
+plot the phase space of the function evol,
+
+Input:
+	evol = evolution function, i.e. deriv from Vera
+	boundaries = [Xmin, Ymin, Xmax, Ymax] = minimal/maximal values until where the phase space should be plotted
+	saveToFile = target file for plot (None = not saved)
+	colorbar = show color bar on right side
+	style = set a custom style for the streamplot
+	alpha = opacity of the stremplot lines
+	maskByCond = set parts of the grid to zero if it's not defined for the complete plot (needed for Anderies Model)
+
+	NOT UP-TO-DATE!!!!
+"""
+
+	# separate the boundaries
+	Xmin, Ymin, Xmax, Ymax = boundaries
+
+	# check boundaries sanity
+	assert Xmin < Xmax
+	assert Ymin < Ymax
+
+	# build the grid
+	X = np.linspace(Xmin, Xmax, steps)
+	Y = np.linspace(Ymin, Ymax, steps)
+
+	XY = np.array(np.meshgrid(X, Y))
+
+	# if Condition give, set everything to zero that fulfills it
+	if maskByCond:
+		mask = maskByCond(XY[0], XY[1])
+		XY[0] = np.ma.array(XY[0], mask = mask)
+		XY[1] = np.ma.array(XY[1], mask = mask)
+
+## 		dummy0 = np.zeros((steps,steps))
+## 		XY[0] = np.where(mask, XY[0], dummy0)
+## 		XY[1] = np.where(mask, XY[1], dummy0)
+
+	# calculate the changes ... input is numpy array
+	dX, dY = evol(XY,0) # that is where deriv from Vera is mapped to
+
+	if invertAxes:
+		data = [Y, X, np.transpose(dY), np.transpose(dX)]
+	else:
+		data = [X, Y, dX, dY]
+
+
+	# separate linestyle
+	linestyle = None
+	if type(style) == dict and "linestyle" in style.keys():
+		linestyle = style["linestyle"]
+		style.pop("linestyle")
+
+	# do the actual plot
+	if style == "dx":
+		c = ax.streamplot(*data, color=dX, linewidth=5*dX/dX.max(), cmap=plt.cm.autumn)
+	elif style:
+            speed = np.sqrt(data[2]**2 + data[3]**2)
+            if "linewidth" in style and style["linewidth"] and lwspeed:
+                style["linewidth"] = style["linewidth"] * speed/np.nanmax(speed)
+##             print speed
+##             print np.nanmax(speed)
+            c = ax.streamplot(*data, **style)
+	else:
+		# default style formatting
+		speed = np.sqrt(dX**2 + dY**2)
+		c = ax.streamplot(*data, color=speed, linewidth=5*speed/speed.max(), cmap=plt.cm.autumn)
+
+
+	# set opacity of the lines
+	if alpha:
+		c.lines.set_alpha(alpha)
+
+	# set linestyle
+	if linestyle:
+		c.lines.set_linestyle(linestyle)
+
+	# add labels if given
+	if invertAxes:
+		temp = xlabel
+		xlabel = ylabel
+		ylabel = temp
+	if xlabel:
+		if ax == plt:
+			ax.xlabel(xlabel)
+		else:
+			ax.set_xlabel(xlabel)
+	if ylabel:
+		if ax == plt:
+			ax.ylabel(ylabel)
+		else:
+			ax.set_ylabel(ylabel)
+
+	# add colorbar
+	if colorbar:
+		assert not "color" in style.keys(), "you want a colorbar for only one color?"
+		ax.colorbar()
 
 def generate_example(default_rhss,
                      management_rhss,
@@ -64,7 +161,7 @@ def generate_example(default_rhss,
                      set_ticks=None,
                      ):
 
-    plotPS = lambda rhs, boundaries, style: mPS.plotPhaseSpace(rhs, [boundaries[0][0], boundaries[1][0], boundaries[0][1], boundaries[1][1]], colorbar=False, style=style)
+    plotPS = lambda rhs, boundaries, style: plotPhaseSpace(rhs, [boundaries[0][0], boundaries[1][0], boundaries[0][1], boundaries[1][1]], colorbar=False, style=style)
 
     if not default_parameters:
         default_parameters = [{}] * len(default_rhss)
@@ -174,10 +271,6 @@ def generate_example(default_rhss,
                     for rhs, parameters in zip(default_rhssPS, default_parameters)] #noqa
                 [plotPS(ft.partial(rhs, **parameters), boundaries, style)
                     for rhs, parameters, style in zip(management_rhssPS, management_parameters, [topo.styleMod1, topo.styleMod2])] #noqa
-
-                if mark_fp is not None:
-                    fps = [ft.partial(rhs, **parameters), boundaries, topo.styleDefault) #noqa
-                        for rhs, parameters in zip(default_rhssPS, default_parameters)] #noqa
 
                 if set_ticks is not None:
                     set_ticks()
