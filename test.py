@@ -26,9 +26,11 @@ import myPhaseSpaceL as mPS
 import argparse, argcomplete
 import datetime as dt
 import functools as ft
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numba as nb
 import numpy as np
+import scipy.optimize as opt
 import time
 import sys
 
@@ -59,6 +61,7 @@ def generate_example(default_rhss,
                      rescaling_epsilon=0.,
                      xlabel=None,
                      ylabel=None,
+                     set_ticks=None,
                      ):
 
     plotPS = lambda rhs, boundaries, style: mPS.plotPhaseSpace(rhs, [boundaries[0][0], boundaries[1][0], boundaries[0][1], boundaries[1][1]], colorbar=False, style=style)
@@ -84,6 +87,8 @@ def generate_example(default_rhss,
                          hidpi=False,
                          use_numba=True,
                          stop_when_finished="all",
+                         flow_only=False,
+                         mark_fp=None,
             ):
 
         plot_points = (plotting == "points")
@@ -135,7 +140,7 @@ def generate_example(default_rhss,
 
         # print(lv.STEPSIZE)
         # lv.STEPSIZE = 2 * x_step
-        lv.STEPSIZE = 2 * x_step * max([1, np.sqrt( n0 / 40 )])  # prop to 1/sqrt(n0)
+        lv.STEPSIZE = 2 * x_step * max([1, np.sqrt( n0 / 30 )])  # prop to 1/sqrt(n0)
         # print(lv.STEPSIZE)
         # assert False
         print("STEPSIZE / x_step = {:5.3f}".format(lv.STEPSIZE / x_step))
@@ -160,7 +165,8 @@ def generate_example(default_rhss,
                 fig = plt.figure(figsize=figure_size, tight_layout=True)
                 # fig = plt.figure(figsize=(15, 15), tight_layout=True)
 
-                viab.plot_points(grid, states, markersize=30 if hidpi else 15)
+                if not flow_only:
+                    viab.plot_points(grid, states, markersize=30 if hidpi else 15)
                 if ARGS.title:
                     plt.gca().set_title('example: ' + example_name, fontsize=20)
 
@@ -169,8 +175,15 @@ def generate_example(default_rhss,
                 [plotPS(ft.partial(rhs, **parameters), boundaries, style)
                     for rhs, parameters, style in zip(management_rhssPS, management_parameters, [topo.styleMod1, topo.styleMod2])] #noqa
 
-                plt.xlim(xlim)
-                plt.ylim(ylim)
+                if mark_fp is not None:
+                    fps = [ft.partial(rhs, **parameters), boundaries, topo.styleDefault) #noqa
+                        for rhs, parameters in zip(default_rhssPS, default_parameters)] #noqa
+
+                if set_ticks is not None:
+                    set_ticks()
+                else:
+                    plt.xlim(xlim)
+                    plt.ylim(ylim)
                 if xlabel is not None:
                     plt.xlabel(xlabel)
                 if ylabel is not None:
@@ -182,9 +195,9 @@ def generate_example(default_rhss,
 
             if plot_areas:
                 fig = plt.figure(figsize=figure_size, tight_layout=True)
-                # fig = plt.figure(figsize=(15, 15), tight_layout=True)
 
-                viab.plot_areas(grid, states)
+                if not flow_only:
+                    viab.plot_areas(grid, states)
                 if ARGS.title:
                     plt.gca().set_title('example: ' + example_name, fontsize=20)
 
@@ -193,8 +206,11 @@ def generate_example(default_rhss,
                 [plotPS(ft.partial(rhs, **parameters), boundaries, style)
                     for rhs, parameters, style in zip(management_rhssPS, management_parameters, [topo.styleMod1, topo.styleMod2])] #noqa
 
-                plt.xlim(xlim)
-                plt.ylim(ylim)
+                if set_ticks is not None:
+                    set_ticks()
+                else:
+                    plt.xlim(xlim)
+                    plt.ylim(ylim)
                 if xlabel is not None:
                     plt.xlabel(xlabel)
                 if ylabel is not None:
@@ -215,7 +231,8 @@ def generate_example(default_rhss,
             if plot_points:
                 # figure already created above
 
-                viab.plot_points(grid, states, markersize=30 if hidpi else 15)
+                if not flow_only:
+                    viab.plot_points(grid, states, markersize=30 if hidpi else 15)
                 if ARGS.title:
                     plt.gca().set_title('example: ' + example_name, fontsize=20)
 
@@ -234,7 +251,8 @@ def generate_example(default_rhss,
             if plot_areas:
                 fig = plt.figure(figsize=(15, 15), tight_layout=True)
 
-                viab.plot_areas(grid, states)
+                if not flow_only:
+                    viab.plot_areas(grid, states)
                 if ARGS.title:
                     plt.gca().set_title('example: ' + example_name, fontsize=20)
 
@@ -279,20 +297,26 @@ EXAMPLES = {
                 generate_example([awm.AW_rescaled_rhs],
                                  [awm.AW_rescaled_rhs],
                                  awm.AW_rescaled_sunny,
-                                 [[1e-8, 1 - 1e-8],[1e-8, 1 - 1e-8]],
+                                 [[1e-3, 1 - 1e-3],[1e-3, 1 - 1e-3]],
                                  default_parameters=[{"beta":awm.beta_default, "theta":awm.theta_default}],
                                  management_parameters=[{"beta":awm.beta_DG, "theta":awm.theta_default}],
                                  out_of_bounds=False,
+                                 xlabel=r"excess atmospheric carbon $A$ [GtC]",
+                                 ylabel=r"economic production $Y$ [trillion US$]",
+                                 set_ticks=awm.set_ticks,
                                  ),
             "aw-model-dg-bifurc":
                 generate_example([awm.AW_rescaled_rhs],
                                  [awm.AW_rescaled_rhs],
                                  awm.AW_rescaled_sunny,
-                                 [[1e-8, 1 - 1e-8],[1e-8, 1 - 1e-8]],
+                                 [[1e-3, 1 - 1e-3],[1e-3, 1 - 1e-3]],
                                  default_parameters=[{"beta":awm.beta_default, "theta":awm.theta_default}],
-                                 management_parameters=[{"beta":3*awm.beta_DG, "theta":awm.theta_default}],
+                                 management_parameters=[{"beta":0.035, "theta":awm.theta_default}],
                                  out_of_bounds=False,
                                  compute_eddies=True,
+                                 xlabel=r"excess atmospheric carbon $A$ [GtC]",
+                                 ylabel=r"economic production $Y$ [trillion US$]",
+                                 set_ticks=awm.set_ticks,
                                  ),
             "aw-model-srm":
                 generate_example([awm.AW_rescaled_rhs],
@@ -414,6 +438,8 @@ if __name__ == "__main__":
                         help="omit backscaling after the topology/viability computation")
     parser.add_argument("-f", "--force", action="store_true",
                         help="overwrite existing files")
+    parser.add_argument("--flow-only", action="store_true",
+                        help="plot only the models flow, nothing else")
     parser.add_argument("--follow", nargs=2, metavar=("point", "dist"),
                         help="follow the points that are at most 'dist' away from 'point")
     parser.add_argument("-g", "--grid", choices=GRID_CHOICES, default=GRID_CHOICES[0],
@@ -423,10 +449,16 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--integrate", action="store_const", dest="run_type",
                         const="integration", default="linear",
                         help="integrate instead of using linear approximation")
+    parser.add_argument("--mark-fp", nargs=1, metavar="fp-approximation",
+                        help="mark the fixed point of the dynamics which is close to 'fp-approximation'")
     parser.add_argument("-n", "--num", type=int, default=80,
                         help="number of points in each dimension")
     parser.add_argument("--no-title", dest="title", action="store_false",
                         help="remove the title from the plot")
+
+    parser.add_argument("--paper", action="store_true",
+                        help="create a plot that has been used for the paper")
+
     parser.add_argument("-p", "--plot", choices=PLOT_CHOICES, default=PLOT_CHOICES[0],
                         help="how to plot the results")
     parser.add_argument("-r", "--remember", action="store_true",
@@ -453,6 +485,18 @@ if __name__ == "__main__":
                      "where the pictures should be save to doesn't make sense " \
                      "(to me at least)")
 
+    if ARGS.paper:
+        ARGS.hidpi = True
+        ARGS.title = False
+        ARGS.num = 200
+        mpl.rcParams["axes.labelsize"] = 36
+        mpl.rcParams["xtick.labelsize"] = 32
+        mpl.rcParams["ytick.labelsize"] = 32
+        ARGS.mark_fp = "[0.5,0.5]"
+
+    if ARGS.mark_fp is not None:
+        ARGS.mark_fp = np.array(eval(ARGS.mark_fp))
+
     for model in ARGS.models:
         save_to = ARGS.save
         if save_to is None:  # -s or --save was set, but no filename was given
@@ -472,6 +516,7 @@ if __name__ == "__main__":
                     hidpi=ARGS.hidpi,
                     use_numba=ARGS.use_numba,
                     stop_when_finished=ARGS.stop_when_finished,
+                    flow_only=ARGS.flow_only,
         )
 
     plt.show()
