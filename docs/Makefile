@@ -2,11 +2,12 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    =
-SPHINXBUILD   = sphinx-build
-SPHINXPROJ    = pyviability
-SOURCEDIR     = source
-BUILDDIR      = build
+SPHINXOPTS      =
+SPHINXBUILD     = sphinx-build
+SPHINXBUILD_API = sphinx-apidoc
+SPHINXPROJ      = pyviability
+SOURCEDIR       = source
+BUILDDIR        = build
 
 # Put it first so that "make" without argument is like "make help".
 help:
@@ -18,7 +19,7 @@ help:
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 
 api:
-	@sphinx-apidoc -f -o "source/" "../pyviability/"
+	@$(SPHINXBUILD_API) --force --separate --implicit-namespaces --output-dir="source/" "../pyviability/" "../pyviability/periodic_kdtree.py"
 
 html: clean api
 %: Makefile
