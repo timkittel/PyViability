@@ -1,11 +1,6 @@
 # Python file to prepare plots for presentations
 forPresentation.py
 
-# stuff from sphinx
-docs/source/modules.rst
-docs/source/pyviability.rst
-docs/build/html/*
-
 # editor stuff (vim Pymode uses rope)
 .ropeproject/
 .*.swp
