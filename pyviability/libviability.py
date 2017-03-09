@@ -544,25 +544,25 @@ def _viability_kernel_step(coordinates, states, *,
     viability_single_point = _generate_viability_single_point(evolutions, state_evaluation,
                                                               use_numba=use_numba, nb_nopython=nb_nopython)
 
-    for base_index in range(max_index):
-        neighbors = RemovingSetWrapper([base_index])
-        # neighbors = [base_index]
+    COUNTER = 0
+    neighbors = RemovingSetWrapper(range(max_index))
+    for index in neighbors: # iterate over all indices and, if one is change, add the neighbors again (if necessary)
+        COUNTER += 1
+        old_state = states[index]
 
-        for index in neighbors:  # iterate over the base_index and, if any changes happened, over the neighbors, too
-            old_state = states[index]
+        if old_state in work_states:
+            state_index = work_states.index(old_state)
+            succesful_state = succesful_states[state_index]
+            bad_state = bad_states[state_index]
+            new_state = viability_single_point(index, coordinates, states, good_states,
+                                               succesful_state, bad_state)
 
-            if old_state in work_states:
-                state_index = work_states.index(old_state)
-                succesful_state = succesful_states[state_index]
-                bad_state = bad_states[state_index]
-                new_state = viability_single_point(index, coordinates, states, good_states,
-                                                   succesful_state, bad_state)
-
-                if new_state != old_state:
-                    changed = True
-                    states[index] = new_state
-                    # get_neighbor_indices(index, shape, neighbor_list = neighbors)
-                    get_neighbor_indices_via_cKD(index,  neighbor_list=neighbors)
+            if new_state != old_state:
+                changed = True
+                states[index] = new_state
+                # get_neighbor_indices(index, shape, neighbor_list = neighbors)
+                get_neighbor_indices_via_cKD(index,  neighbor_list=neighbors)
+    print("FINAL COUNTER", COUNTER)
 
     return changed
 
