@@ -4,6 +4,7 @@ forPresentation.py
 # editor stuff (vim Pymode uses rope)
 .ropeproject/
 .*.swp
+pyviability/.ycm_extra_conf.py
 
 # ecplise stuff
 *.project
@@ -76,3 +77,6 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+.idea/
+# docs/source/_static/
+# docs/source/_templates/
