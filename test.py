@@ -17,6 +17,7 @@ import tests.FiniteTimeLakeModel2 as ftlm2
 import tests.GravityPendulumModel as gpm
 import tests.PlantModel as pm
 import tests.PopulationAndResourceModel as prm
+import tests.SwingEquationModel as sqm
 import tests.TechChangeModel as tcm
 
 # other useful stuff
@@ -431,6 +432,18 @@ EXAMPLES = {
                                  periodicity=[1, -1],
                                  compute_eddies=True,
                                  rescaling_epsilon=1e-3,
+                                 ),
+            "swing-eq":
+                generate_example([sqm.swing_rhs],
+                                 [sqm.swing_rhs],
+                                 sqm.swing_sunny,
+                                 [[-0.5*np.pi, 1.5*np.pi],[-1, 1]],
+                                 default_parameters=[{"alpha":0.2, "P":0.3, "K":0.5}],
+                                 management_parameters=[{"alpha":0.2, "P":0.0, "K":0.5}],
+                                 periodicity=[1, -1],
+                                 compute_eddies=False,
+                                 rescaling_epsilon=1e-3,
+                                 out_of_bounds=False, # set because it creates a nice picture for these specific parameters
                                  ),
             "plants":
                 generate_example([pm.plants_rhs],
