@@ -21,7 +21,13 @@ import tests.SwingEquationModel as sqm
 import tests.TechChangeModel as tcm
 
 # other useful stuff
-import argparse, argcomplete
+import argparse
+try:
+    import argcomplete
+except ImportError:
+    with_argcomplete = False
+else:
+    with_argcomplete = True
 import datetime as dt
 import functools as ft
 import matplotlib as mpl
@@ -579,8 +585,9 @@ if __name__ == "__main__":
                         help="do not use numba jit-compiling")
 
 
-    # use argcomplete auto-completion
-    argcomplete.autocomplete(parser)
+    if with_argcomplete:
+        # use argcomplete auto-completion
+        argcomplete.autocomplete(parser)
 
     ARGS = parser.parse_args()
     if "all" in ARGS.models:
