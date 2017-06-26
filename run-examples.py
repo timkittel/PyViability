@@ -10,15 +10,15 @@ from pyviability import libviability as lv
 from pyviability import PTopologyL as topo
 
 # model imports
-import tests.AWModel as awm
-import tests.ConsumptionModel as cm
-import tests.FiniteTimeLakeModel as ftlm
-import tests.FiniteTimeLakeModel2 as ftlm2
-import tests.GravityPendulumModel as gpm
-import tests.PlantModel as pm
-import tests.PopulationAndResourceModel as prm
-import tests.SwingEquationModel as sqm
-import tests.TechChangeModel as tcm
+import examples.AWModel as awm
+import examples.ConsumptionModel as cm
+import examples.FiniteTimeLakeModel as ftlm
+import examples.FiniteTimeLakeModel2 as ftlm2
+import examples.GravityPendulumModel as gpm
+import examples.PlantModel as pm
+import examples.PopulationAndResourceModel as prm
+import examples.SwingEquationModel as sqm
+import examples.TechChangeModel as tcm
 
 # other useful stuff
 import argparse
