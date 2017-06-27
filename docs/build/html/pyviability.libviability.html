@@ -1,0 +1,253 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyviability.libviability module &#8212; pyviability 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head>
+  <body role="document">
+      <div class="header" role="banner"><h1 class="heading"><a href="index.html">
+          <span>pyviability 0.1 documentation</span></a></h1>
+        <h2 class="heading"><span>pyviability.libviability module</span></h2>
+      </div>
+      <div class="topnav" role="navigation" aria-label="top navigation">
+      
+        <p>
+        <a class="uplink" href="index.html">Contents</a>
+        </p>
+
+      </div>
+      <div class="content">
+        
+        
+  <div class="section" id="module-pyviability.libviability">
+<span id="pyviability-libviability-module"></span><h1>pyviability.libviability module<a class="headerlink" href="#module-pyviability.libviability" title="Permalink to this headline">¶</a></h1>
+<p>Basic module that contains most of the relevant routines.</p>
+<dl class="class">
+<dt id="pyviability.libviability.RemovingSetWrapper">
+<em class="property">class </em><code class="descclassname">pyviability.libviability.</code><code class="descname">RemovingSetWrapper</code><a class="reference internal" href="_modules/pyviability/libviability.html#RemovingSetWrapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.RemovingSetWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">set</span></code></p>
+<p>RemovingSetWrapper removes elements on iteration.</p>
+<p><strong>Note:</strong> Usually used internally only.</p>
+<p>When iterating over RemovingSetWrapper, the iterated element is removed.
+This manages basically which points are still needed to iterate over in the viability
+algorithm.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.backscaling_grid">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">backscaling_grid</code><span class="sig-paren">(</span><em>grid</em>, <em>scaling_vector</em>, <em>offset</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#backscaling_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.backscaling_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scale a grid back( after computation) from [0, 1]^dim to the original state space.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.generate_grid">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">generate_grid</code><span class="sig-paren">(</span><em>boundaries</em>, <em>n0</em>, <em>grid_type='orthogonal'</em>, <em>periodicity=[]</em>, <em>verbosity=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#generate_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.generate_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a grid, that is already normalized to [0, 1]^dimension.</p>
+<p><strong>Note:</strong> This function also sets globally MAX_NEIGHBOR_DISTANCE, BOUNDS_EPSILON, STEPSIZE, ALL_NEIGHBORS_DISTANCE.
+So if you don&#8217;t use this function, you need to set it yourself by hand.
+Later, this will be circumvented by using proper OO-programming.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>boundaries</strong> (<em>array-like</em>) &#8211; shape (dim, 2), give the boundaries (min and max) for each dimension of the mode system</li>
+<li><strong>n0</strong> (<em>non-negative int</em>) &#8211; total number of points that the grid should have</li>
+<li><strong>grid_type</strong> (<em>str</em><em>, </em><em>default: &quot;orthogonal&quot;</em>) &#8211; specify the grid_type to be created. experimental, only use if your know what you do</li>
+<li><strong>periodicity</strong> (<em>array-like</em><em>, </em><em>default:</em><em> [</em><em></em><em>]</em><em></em>) &#8211; specify if there is an peridicity given (to avoid overlapping points)</li>
+<li><strong>verbosity</strong> (<em>bool</em><em>, </em><em>default: True</em>) &#8211; specify the verbosity</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
+<dt>(grid, scaling_vectors, offset, x_step) with</dt>
+<dd><p class="first"><cite>grid</cite>: the actual rescaled grid</p>
+<p><cite>scaling_vectors</cite>, <cite>offset</cite> : parameters to scale the grid back to the original size</p>
+<p class="last"><cite>x_step</cite> : stepsize of the grid</p>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">tuple</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.get_global_status">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">get_global_status</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#get_global_status"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.get_global_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the current Status of a computation.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.get_neighbor_indices_via_cKD">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">get_neighbor_indices_via_cKD</code><span class="sig-paren">(</span><em>index</em>, <em>neighbor_list=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#get_neighbor_indices_via_cKD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.get_neighbor_indices_via_cKD" title="Permalink to this definition">¶</a></dt>
+<dd><p>extend &#8216;neighbor_list&#8217; by all neighbors that are closer than STEPSIZE + BOUNDS_EPSILON</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.make_run_function">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">make_run_function</code><span class="sig-paren">(</span><em>rhs</em>, <em>ordered_params</em>, <em>offset</em>, <em>scaling_vector</em>, <em>returning='linear'</em>, <em>use_numba=True</em>, <em>nb_nopython=True</em>, <em>rescaling_epsilon=1e-06</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#make_run_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.make_run_function" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a <em>run-function</em> from a right-hand side of an ordinary differential equation.</p>
+<p>The <em>run-function</em> takes a starting point and a time and returns a trajectory that
+follows the corresponding ODE. It basically provides the step from a generic ODE to
+a map that gives the next point. The reason the return value is actually a trajectory
+and not just the next point is simply future compatibility.</p>
+<p><strong>Note:</strong> This function automatically rescales the RHS to work on [0, 1]^dim and homogenizes
+the time (see <a class="reference external" href="https://arxiv.org/abs/1706.04542">https://arxiv.org/abs/1706.04542</a>).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>rhs</strong> (<em>callable</em>) &#8211; Function that representes the RHS of the ODE. The first two arguments should be
+the point <cite>x</cite> in state space and the time <cite>t</cite>. The following arguments should be
+parameters that are need to be given, if necessary.</li>
+<li><strong>ordered_params</strong> (<em>tuple</em>) &#8211; The parameters needed for rhs.</li>
+<li><strong>offset</strong> (<em>array-like</em>) &#8211; output from grid rescaling, see <cite>generate_grid</cite></li>
+<li><strong>scaling_vector</strong> (<em>array-like</em>) &#8211; output from grid rescaling, see <cite>generate_grid</cite></li>
+<li><strong>returning</strong> (<em>str</em><em>, </em><em>default : &quot;linear&quot;</em>) &#8211; only change of you know what you do</li>
+<li><strong>use_numa</strong> (<em>bool</em><em>, </em><em>default : True</em>) &#8211; Should numba be used?</li>
+<li><strong>nb_nb_nopython</strong> (<em>bool</em><em>, </em><em>default : True</em><em>,</em><em></em>) &#8211; If numba is used, force nopython-mode?</li>
+<li><strong>rescaling_rescaling_epsilon</strong> (<em>float</em><em>, </em><em>default : 1e-6</em>) &#8211; When homogenizing the time, which epsilong value should be used. see <a class="reference external" href="https://arxiv.org/abs/1706.04542">https://arxiv.org/abs/1706.04542</a></li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The corresponding run-function.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">callable</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.plot_areas">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">plot_areas</code><span class="sig-paren">(</span><em>coords</em>, <em>states</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#plot_areas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.plot_areas" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot the current states in the viability calculation as areas</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.plot_points">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">plot_points</code><span class="sig-paren">(</span><em>coords</em>, <em>states</em>, <em>markersize=15</em>, <em>plot_unset=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#plot_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.plot_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot the current states in the viability calculation as points</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.pre_calculation_hook_kdtree">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">pre_calculation_hook_kdtree</code><span class="sig-paren">(</span><em>coordinates</em>, <em>states</em>, <em>is_sunny=None</em>, <em>periodicity=None</em>, <em>grid_type=None</em>, <em>out_of_bounds=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#pre_calculation_hook_kdtree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.pre_calculation_hook_kdtree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do all prepratory stuff for a viability computation.</p>
+<p><strong>Note:</strong> Usually used internally only.</p>
+<p>This function creates the KDTREE, makes a variety of variables globally accessible.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.print_evaluation">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">print_evaluation</code><span class="sig-paren">(</span><em>states</em>, <em>print_empty_regions=True</em>, <em>print_unknown=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#print_evaluation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.print_evaluation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print an Evaluation of the results of an TSM-Computation.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.printv">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">printv</code><span class="sig-paren">(</span><em>*args</em>, <em>verbosity=1</em>, <em>date_behind=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#printv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.printv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print the output depending on the given verbosity.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.scaled_to_one_sunny">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">scaled_to_one_sunny</code><span class="sig-paren">(</span><em>is_sunny</em>, <em>offset</em>, <em>scaling_vector</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#scaled_to_one_sunny"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.scaled_to_one_sunny" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scale the is_sunny function so it operates on [0, 1]^dim.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.set_global_status">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">set_global_status</code><span class="sig-paren">(</span><em>*args</em>, <em>print_verbosity=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#set_global_status"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.set_global_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setting the global Status of a Computation so it can be read out in case of Errors.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.state_evaluation_kdtree">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">state_evaluation_kdtree</code><span class="sig-paren">(</span><em>traj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#state_evaluation_kdtree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.state_evaluation_kdtree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the closest point to the end of the trajectory in the grid using KDTREE.</p>
+<p><strong>Note:</strong> Used internally during the viability computations.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.libviability.topology_classification">
+<code class="descclassname">pyviability.libviability.</code><code class="descname">topology_classification</code><span class="sig-paren">(</span><em>coordinates</em>, <em>states</em>, <em>default_evols</em>, <em>management_evols</em>, <em>is_sunny</em>, <em>periodic_boundaries=[]</em>, <em>compute_eddies=False</em>, <em>pre_calculation_hook=&lt;function pre_calculation_hook_kdtree&gt;</em>, <em>state_evaluation=&lt;function state_evaluation_kdtree&gt;</em>, <em>post_computation_hook=&lt;function reset_initial_states&gt;</em>, <em>grid_type='orthogonal'</em>, <em>out_of_bounds=True</em>, <em>remember_paths=False</em>, <em>verbosity=0</em>, <em>stop_when_finished=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/libviability.html#topology_classification"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.libviability.topology_classification" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimate different regions of the state space using viability theory algorithms.</p>
+<p>This function computes the Topology of Sustainable Management (TSM) classification of the state space (see [1] for mathematical details).</p>
+<p>The first application can be found in [2].</p>
+<p>[1] <a class="reference external" href="http://www.earth-syst-dynam.net/7/21/2016/esd-7-21-2016.html">http://www.earth-syst-dynam.net/7/21/2016/esd-7-21-2016.html</a></p>
+<p>[2] <a class="reference external" href="https://arxiv.org/abs/1706.04542">https://arxiv.org/abs/1706.04542</a></p>
+<p><em>Note:</em> A <cite>state</cite> is an integer referring to a certain region (in the sense of TSM), corresponding as to how they are defined in the header of this file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>coordinates</strong> (<em>array-like</em>) &#8211; Grid used for the computation, shape (n0, dim) where n0 is the total number of points and dim the dimension of the system</li>
+<li><strong>states</strong> (<em>array-like</em>) &#8211; associates to each grid point the corresponding state. negative values correspond to preset values given by the user. <strong>The results will be saved in here.</strong></li>
+<li><strong>compute_eddies</strong> (<em>bool</em><em>, </em><em>default : True</em>) &#8211; Should the Eddies be computed as well. As indicated in [2], this may take quite a bit of computational power and is hence switched of generally.</li>
+<li><strong>pre_pre_calculation_hook</strong> (<em>callable</em><em>, </em><em>default : pre_pre_calculation_hook_kdtree</em>) &#8211; ignore if you don&#8217;t know what to do</li>
+<li><strong>state_evaluation</strong> (<em>callable</em><em>, </em><em>default : state_evaluation_kdtree</em>) &#8211; ignore if you don&#8217;t know what to do</li>
+<li><strong>post_computation_hook</strong> (<em>callable</em><em>, </em><em>default : reset_initial_states</em>) &#8211; ignore if you don&#8217;t know what to do</li>
+<li><strong>grid_type</strong> (<em>str</em><em>, </em><em>default : &quot;orthogonal&quot;</em>) &#8211; </li>
+<li><strong>out_of_bounds</strong> (<em>bool</em><em>, </em><em>default : True</em>) &#8211; Is outside of the grid a undesirable region (in the sense of TSM)?</li>
+<li><strong>remember_paths</strong> (<em>bool</em><em>, </em><em>default : False</em>) &#8211; Remember the paths that have been used. This is actually more of a hack and should not really be used.</li>
+<li><strong>verbosity</strong> (<em>int</em><em>, </em><em>default : 0</em>) &#8211; </li>
+<li><strong>stop_when_finished</strong> (<em>str</em><em>, </em><em>default : ''</em>) &#8211; For Debugging only: stop when a certain operation has finished. See TOPOLOGY_STEP_LIST for the list of possible values.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+      </div>
+      <div class="bottomnav" role="navigation" aria-label="bottom navigation">
+      
+        <p>
+        <a class="uplink" href="index.html">Contents</a>
+        </p>
+
+      </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Tim Kittel.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.1.
+    </div>
+  </body>
+</html>
