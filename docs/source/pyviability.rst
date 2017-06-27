@@ -15,5 +15,4 @@ Module contents
 
 .. automodule:: pyviability
     :members:
-    :undoc-members:
     :show-inheritance:

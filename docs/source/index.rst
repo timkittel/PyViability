@@ -13,13 +13,19 @@ Welcome to PyViability's documentation!
 Introduction
 ------------
 
-*Disclaimer:* The library is still preliminary work. If you want to work with it, please contact me!
+*Disclaimer:* The library is still preliminary work. If you want to work with it, please contact me (Tim.Kittel@pik-potsdam.de)!
 
-PyViability is small library for Computations related to Viability Theory, particular the Viability Kernel and the Capture Basin, and for the Classifications of (a) Models(') (state space) with respect to the Topology of Sustainable Management.
+PyViability is small library for Computations related to Viability Theory, particular the Viability Kernel and the Capture Basin, and for the Classifications of (a) Models(') (state space) with respect to the Topology of Sustainable Management [1].
 
-**TODO** insert citations for both.
+The library was developped during the work on [2] and is in a very preliminary state. I am happy for any support to improve the library. 
 
-The library was developped during the work on **INSERT LINK** and is in a very preliminary state. I am happy for any support to improve the library. 
+[1] http://www.earth-syst-dynam.net/7/21/2016/esd-7-21-2016.html
+
+[2] https://arxiv.org/abs/1706.04542
+
+Find the source here_.
+
+.. _here: https://github.com/timkittel/PyViability
 
 
 Tutorial
@@ -27,12 +33,8 @@ Tutorial
 
 Because the library is still very preliminary there is no real tutorial here, yet. Check out the `run-examples.py`, which is a script that can through a few examples.
 
-Documentation
+API-Documentation
 -------------
-
-**TODO** add the actual documentation to the code
-
-**TODO** link the the topology classification library
 
 * :ref:`modindex`
 
