@@ -10,16 +10,17 @@ import os.path
 import xml.etree.ElementTree as ET
 
 
-colorFileName = "colors.soc"
+relative_color_filepath = "colors.soc"
 """relative path to the color file"""
-colorpath = os.path.join(os.path.split(__file__)[0], colorFileName)
-"""absolute path to the color file"""
+absolute_color_filepath = os.path.join(os.path.split(__file__)[0], relative_color_filepath)
+# absolute path to the color file
 
-tree = ET.parse(colorpath)
+tree = ET.parse(absolute_color_filepath)
 root = tree.getroot()
 
 tsm_colors = {}
-"""provide all colors from the TSM framework"""
+"""provide all colors from the TSM framework, automatically loaded from 'relative_color_filepath'"""
+
 for child in root.getchildren():
     tsm_colors[child.attrib['{TSM}name']] = child.attrib['{TSM}color']
 
@@ -57,7 +58,7 @@ color_translate_dict = {
 """translating between the long keys and the shorter version"""
 
 # check if all necessary colors are defined
-assert set(tsm_colors.keys()).issuperset(color_translate_dict.keys()), "some colors are not defined (color file is %s)" % colorpath
+assert set(tsm_colors.keys()).issuperset(color_translate_dict.keys()), "some colors are not defined (color file is %s)" % absolute_color_filepath
 
 # save colors with short keys, too
 for colTop, colC in sorted(color_translate_dict.items()):

@@ -1,3 +1,7 @@
+"""
+Basic module that contains most of the relevant routines.
+"""
+
 from __future__ import print_function, division, generators
 
 from .tsm_style import tsm_colors
@@ -21,6 +25,20 @@ import warnings as warn
 import itertools as it
 import functools as ft
 import datetime as dt
+
+#################################################################
+# Disclaimer:
+# Most of the Code is written in functions so numba speed-up can
+# be used easily. Everything will be wrapped in classes as soon
+# as numba.jitclass has stabilized.
+#################################################################
+
+#################################################################
+# Some doc strings are as comments, because the functions should
+# not appear in the actual documentation. Usually, that is
+# because they are still experimental.
+#################################################################
+
 
 # flush the output of print by default
 print = ft.partial(print, flush=True)
@@ -135,6 +153,7 @@ COLORS = {
 
 
 def printv(*args, verbosity=1, date_behind = False, **kwargs):
+    """Print the output depending on the given verbosity."""
     if "flush" not in kwargs:
         kwargs["flush"] = True
     if verbosity <= VERBOSITY:
@@ -149,6 +168,7 @@ def printv(*args, verbosity=1, date_behind = False, **kwargs):
 
 
 def printd(*args, **kwargs):
+    # Print the output depending on the global variable `DEDBUGGING`.
     if "flush" not in kwargs:
         kwargs["flush"] = True
     if DEBUGGING:
@@ -156,14 +176,14 @@ def printd(*args, **kwargs):
 
 
 def Delta_series(Delta_0, dim):
+    # create the detla series for a simplex-based grid
     q = Delta_0 ** 2
     return [np.sqrt(q * (n+2) / (2*n + 2)) for n in range(dim)]
 
 
 def p_series(Delta_0, dim):
-    """\
-    returns the p vectors as an array p[i, j] where j enumerates the \
-    vector (and thus dimension) and i the component"""
+    # returns the p vectors as an array p[i, j] where j enumerates the \
+    # vector (and thus dimension) and i the component
     p_all = np.zeros((dim, dim))
     for n, Delta_n in enumerate(Delta_series(Delta_0, dim)):
         p_all[:n, n] = np.sum(p_all[:n, :n], axis=1) / (n+1)
@@ -171,8 +191,38 @@ def p_series(Delta_0, dim):
     return p_all
 
 
-def generate_grid(boundaries, n0, grid_type, periodicity=[], verbosity=True):
+def generate_grid(boundaries, n0, grid_type = "orthogonal", periodicity=[], verbosity=True):
+    """Generate a grid, that is already normalized to [0, 1]^dimension.
+
+    **Note:** This function also sets globally MAX_NEIGHBOR_DISTANCE, BOUNDS_EPSILON, STEPSIZE, ALL_NEIGHBORS_DISTANCE.
+    So if you don't use this function, you need to set it yourself by hand.
+    Later, this will be circumvented by using proper OO-programming.
+
+    Parameters
+    ----------
+    boundaries : array-like
+        shape (dim, 2), give the boundaries (min and max) for each dimension of the mode system
+    n0 : non-negative int
+        total number of points that the grid should have
+    grid_type : str, default: "orthogonal"
+        specify the grid_type to be created. experimental, only use if your know what you do
+    periodicity : array-like, default: []
+        specify if there is an peridicity given (to avoid overlapping points)
+    verbosity : bool, default: True
+        specify the verbosity
+
+    Returns
+    -------
+    tuple
+        (grid, scaling_vectors, offset, x_step) with
+            `grid`: the actual rescaled grid
+
+            `scaling_vectors`, `offset` : parameters to scale the grid back to the original size
+
+            `x_step` : stepsize of the grid
+    """
     global MAX_NEIGHBOR_DISTANCE, BOUNDS_EPSILON, STEPSIZE, ALL_NEIGHBORS_DISTANCE
+    # These are set globally afterwards.
 
     assert grid_type in ["simplex-based", "orthogonal"], "unkown grid type '{!s}'".format(grid_type)
 
@@ -255,11 +305,6 @@ def generate_grid(boundaries, n0, grid_type, periodicity=[], verbosity=True):
 def _generate_viability_single_point(evolutions, state_evaluation, use_numba=False, nb_nopython=False):
     if use_numba:
         raise NotImplementedError("numba usage doesn't really make sense here, because KDTREE cannot be numba jitted")
-
-        # isdispatcher = lambda x: isinstance(x, nb.dispatcher.Dispatcher)
-        # if not (isdispatcher(state_evaluation) and all(map(isdispatcher, evolutions))):
-            # warn.warn("you want to use numba, but some of the input stuff doesn't seem to be ready for compilation")
-
     else:
 
         def _viability_single_point(coordinate_index, coordinates, states,
@@ -270,6 +315,8 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
             start_state = states[coordinate_index]
 
             global DEBUGGING, PATHS
+            # Keep the below statements as they are rather useful for the debugging.
+            # Will be removed for the 1.0 release (one day ^^).
             # DEBUGGING = True
             # DEBUGGING = DEBUGGING and STATUS == "TOPOLOGY MANAGEABLE COMPUTATION"
             # DEBUGGING = DEBUGGING and (start_state == 1)
@@ -313,7 +360,7 @@ def _generate_viability_single_point(evolutions, state_evaluation, use_numba=Fal
 
 
 def _state_evaluation_kdtree_line(traj):
-    """deprecated (for now ^^)"""
+    # deprecated (for now ^^)
     start_point = traj[0]
     final_point = traj[-1]
     # print("start_point", start_point)
@@ -406,8 +453,11 @@ def _state_evaluation_kdtree_line(traj):
     return closest_index, final_state
 
 
-# @nb.jit
-def state_evaluation_kdtree_numba(traj):
+def state_evaluation_kdtree(traj):
+    """Get the closest point to the end of the trajectory in the grid using KDTREE.
+
+    **Note:** Used internally during the viability computations.
+    """
     # global DEBUGGING
     point = traj[-1]
 
@@ -437,16 +487,16 @@ def state_evaluation_kdtree_numba(traj):
     return tree_index, STATES[tree_index]
 
 
-def state_evaluation_kdtree(traj):
-    point = traj[-1]
-    if OUT_OF_BOUNDS:
-        projected_values = np.tensordot(BASIS_VECTORS_INV, point, axes=[(1,), (0,)])
-        if np.any( BOUNDS[:, 0] > projected_values) or np.any( BOUNDS[:, 1] < projected_values ):  # is the point out-of-bounds?
-            if DEBUGGING:
-                print("out-of-bounds")
-            return OUT_OF_BOUNDS_STATE
-    _, tree_index = KDTREE.query(point, 1)
-    return tree_index, STATES[tree_index]
+# def state_evaluation_kdtree(traj):
+#     point = traj[-1]
+#     if OUT_OF_BOUNDS:
+#         projected_values = np.tensordot(BASIS_VECTORS_INV, point, axes=[(1,), (0,)])
+#         if np.any( BOUNDS[:, 0] > projected_values) or np.any( BOUNDS[:, 1] < projected_values ):  # is the point out-of-bounds?
+#             if DEBUGGING:
+#                 print("out-of-bounds")
+#             return OUT_OF_BOUNDS_STATE
+#     _, tree_index = KDTREE.query(point, 1)
+#     return tree_index, STATES[tree_index]
 
 
 def pre_calculation_hook_kdtree(coordinates, states,
@@ -454,6 +504,12 @@ def pre_calculation_hook_kdtree(coordinates, states,
                                 periodicity=None,
                                 grid_type=None,
                                 out_of_bounds=True):
+    """Do all prepratory stuff for a viability computation.
+
+    **Note:** Usually used internally only.
+
+    This function creates the KDTREE, makes a variety of variables globally accessible.
+    """
     global KDTREE, STATES, BASIS_VECTORS, BASIS_VECTORS_INV, BOUNDS, OUT_OF_BOUNDS
     STATES = states
 
@@ -520,6 +576,14 @@ def pre_calculation_hook_kdtree(coordinates, states,
 
 
 class RemovingSetWrapper(set):
+    """RemovingSetWrapper removes elements on iteration.
+
+    **Note:** Usually used internally only.
+
+    When iterating over RemovingSetWrapper, the iterated element is removed.
+    This manages basically which points are still needed to iterate over in the viability
+    algorithm.
+    """
     def __iter__(self):
         return self
     def __next__(self):
@@ -568,8 +632,8 @@ def _viability_kernel_step(coordinates, states, *,
 
 
 def get_neighbor_indices_via_cKD(index, neighbor_list=[]):
-    """extend 'neighbor_list' by 'tree_neighbors', a list that contains the nearest neighbors found trough cKDTree"""
-
+    """extend 'neighbor_list' by all neighbors that are closer than STEPSIZE + BOUNDS_EPSILON
+    """
     index = np.asarray(index).astype(int)
 
     tree_neighbors = KDTREE.query_ball_point(KDTREE.data[index].flatten(), STEPSIZE + BOUNDS_EPSILON)
@@ -580,20 +644,20 @@ def get_neighbor_indices_via_cKD(index, neighbor_list=[]):
     return neighbor_list
 
 
-def get_neighbor_indices(index, shape, neighbor_list=[]):
-    """append all neighboring indices of 'index' to 'neighbor_list' if they are within 'shape'"""
-
-    index = np.asarray(index)
-    shape = np.asarray(shape)
-
-    for diff_index in it.product([-1, 0, 1], repeat=len(index)):
-        diff_index = np.asarray(diff_index)
-        new_index = index + diff_index
-
-        if np.count_nonzero(diff_index) and np.all( new_index >= 0 ) and np.all( new_index < shape ):
-            neighbor_list.append(tuple(new_index))
-
-    return neighbor_list
+# def get_neighbor_indices(index, shape, neighbor_list=[]):
+#     """append all neighboring indices of 'index' to 'neighbor_list' if they are within 'shape'"""
+#
+#     index = np.asarray(index)
+#     shape = np.asarray(shape)
+#
+#     for diff_index in it.product([-1, 0, 1], repeat=len(index)):
+#         diff_index = np.asarray(diff_index)
+#         new_index = index + diff_index
+#
+#         if np.count_nonzero(diff_index) and np.all( new_index >= 0 ) and np.all( new_index < shape ):
+#             neighbor_list.append(tuple(new_index))
+#
+#     return neighbor_list
 
 
 def _viability_kernel(coordinates, states, *, 
@@ -668,6 +732,7 @@ def _viability_capture_basin(coordinates, states, *,
 
 
 def print_evaluation(states, print_empty_regions=True, print_unknown=True):
+    """Print an Evaluation of the results of an TSM-Computation."""
     total = states.size
     total_length = str(len(str(total)))
     num_sum = 0
@@ -718,12 +783,47 @@ def make_run_function(rhs,
                       ordered_params,
                       offset,
                       scaling_vector,
-                      returning="integration",
-                      remember=True,
+                      returning="linear",
                       use_numba=True,
                       nb_nopython=True,
                       rescaling_epsilon=1e-6,
                       ):
+    """Create a *run-function* from a right-hand side of an ordinary differential equation.
+
+    The *run-function* takes a starting point and a time and returns a trajectory that
+    follows the corresponding ODE. It basically provides the step from a generic ODE to
+    a map that gives the next point. The reason the return value is actually a trajectory
+    and not just the next point is simply future compatibility.
+
+    **Note:** This function automatically rescales the RHS to work on [0, 1]^dim and homogenizes
+    the time (see https://arxiv.org/abs/1706.04542).
+
+    Parameters
+    ----------
+    rhs : callable
+        Function that representes the RHS of the ODE. The first two arguments should be
+        the point `x` in state space and the time `t`. The following arguments should be
+        parameters that are need to be given, if necessary.
+    ordered_params : tuple
+        The parameters needed for rhs.
+    offset : array-like
+        output from grid rescaling, see `generate_grid`
+    scaling_vector : array-like
+        output from grid rescaling, see `generate_grid`
+    returning : str, default : "linear"
+        only change of you know what you do
+    use_numa : bool, default : True
+        Should numba be used?
+    nb_nb_nopython : bool, default : True,
+        If numba is used, force nopython-mode?
+    rescaling_rescaling_epsilon :  float, default : 1e-6
+        When homogenizing the time, which \epsilong value should be used. see https://arxiv.org/abs/1706.04542
+
+    Returns
+    -------
+    callable
+        The corresponding run-function.
+    """
 
     S = np.array(scaling_vector, order="C", copy=True)
     Sinv = np.array(la.inv(S), order="C", copy=True)
@@ -852,9 +952,7 @@ def make_run_function(rhs,
         # else:
             # return traj
 
-    if returning == "integration":
-        return integration
-    elif returning == "linear":
+    if returning == "linear":
         return normalized_linear_approximation
     elif returning == "PS":
         return rhs_scaled_to_one_PS
@@ -863,6 +961,7 @@ def make_run_function(rhs,
 
 
 def scaled_to_one_sunny(is_sunny, offset, scaling_vector):
+    """Scale the is_sunny function so it operates on [0, 1]^dim."""
     S = scaling_vector
     Sinv = la.inv(S)
 
@@ -876,41 +975,43 @@ def scaled_to_one_sunny(is_sunny, offset, scaling_vector):
     return scaled_sunny
 
 
-def trajectory_length(traj):
-    return np.sum( la.norm( traj[1:] - traj[:-1], axis=-1) )
+# def trajectory_length(traj):
+#     return np.sum( la.norm( traj[1:] - traj[:-1], axis=-1) )
 
 
-def trajectory_length_index(traj, target_length):
-    lengths = np.cumsum( la.norm( traj[1:] - traj[:-1], axis=-1) )
-
-    if target_length < lengths[-1]:
-        return traj.shape[0]  # incl. last element
-    index_0, index_1 = 0, traj.shape[0] - 1
-
-    while index_0 not in [index_1, index_1 - 1]:
-        middle_index = int( (index_0 + index_1)/2 )
-
-        if lengths[middle_index] <= target_length:
-            index_0 = middle_index
-        else:
-            index_1 = middle_index
-
-    return index_1
+# def trajectory_length_index(traj, target_length):
+#     lengths = np.cumsum( la.norm( traj[1:] - traj[:-1], axis=-1) )
+#
+#     if target_length < lengths[-1]:
+#         return traj.shape[0]  # incl. last element
+#     index_0, index_1 = 0, traj.shape[0] - 1
+#
+#     while index_0 not in [index_1, index_1 - 1]:
+#         middle_index = int( (index_0 + index_1)/2 )
+#
+#         if lengths[middle_index] <= target_length:
+#             index_0 = middle_index
+#         else:
+#             index_1 = middle_index
+#
+#     return index_1
 
 
 def backscaling_grid(grid, scaling_vector, offset):
+    """Scale a grid back( after computation) from [0, 1]^dim to the original state space."""
     S = scaling_vector
     Sinv = la.inv(S)
     new_grid = np.tensordot(grid, Sinv, axes=[(1,), (1,)]) + offset[None, :]
     return new_grid
 
 
-def reset_initial_states(coordinates, states):
+def reset_initial_states(states):
     # All initially given states are set to positive counterparts
     states[(states < UNSET)] *= -1
 
 
 def set_global_status(*args, print_verbosity=None):
+    """Setting the global Status of a Computation so it can be read out in case of Errors."""
     assert not STATUS_PREFIX is None, "STATUS_PREFIX has to be set, maybe you found a bug?"
     global STATUS
     STATUS = STATUS_INFIX.join((STATUS_PREFIX,) + args)
@@ -923,15 +1024,15 @@ def set_global_status(*args, print_verbosity=None):
 
 
 def get_global_status():
+    """Return the current Status of a computation."""
     return STATUS
 
 
 def topology_classification(coordinates, states, default_evols, management_evols, is_sunny,
                             periodic_boundaries=[],
-                            upgradeable_initial_states=False,
                             compute_eddies=False,
                             pre_calculation_hook=pre_calculation_hook_kdtree,  # None means nothing to be done
-                            state_evaluation=state_evaluation_kdtree_numba,
+                            state_evaluation=state_evaluation_kdtree,
                             post_computation_hook=reset_initial_states,
                             grid_type="orthogonal",
                             out_of_bounds=True,  # either bool or bool array with shape (dim, ) or shape (dim, 2) with values for each boundary
@@ -939,7 +1040,40 @@ def topology_classification(coordinates, states, default_evols, management_evols
                             verbosity=0,
                             stop_when_finished=TOPOLOGY_STEP_LIST[-1],  # means everything goes
                             ):
-    """calculates different regions of the state space using viability theory algorithms
+    """Estimate different regions of the state space using viability theory algorithms.
+
+    This function computes the Topology of Sustainable Management (TSM) classification of the state space (see [1] for mathematical details).
+
+    The first application can be found in [2].
+
+    [1] http://www.earth-syst-dynam.net/7/21/2016/esd-7-21-2016.html
+
+    [2] https://arxiv.org/abs/1706.04542
+
+    *Note:* A `state` is an integer referring to a certain region (in the sense of TSM), corresponding as to how they are defined in the header of this file
+
+    Parameters
+    ----------
+    coordinates : array-like
+        Grid used for the computation, shape (n0, dim) where n0 is the total number of points and dim the dimension of the system
+    states : array-like
+        associates to each grid point the corresponding state. negative values correspond to preset values given by the user. **The results will be saved in here.**
+    compute_eddies : bool, default : True
+        Should the Eddies be computed as well. As indicated in [2], this may take quite a bit of computational power and is hence switched of generally.
+    pre_pre_calculation_hook : callable, default : pre_pre_calculation_hook_kdtree
+        ignore if you don't know what to do
+    state_evaluation : callable, default : state_evaluation_kdtree
+        ignore if you don't know what to do
+    post_computation_hook : callable, default : reset_initial_states
+        ignore if you don't know what to do
+    grid_type : str, default : "orthogonal"
+    out_of_bounds : bool, default : True
+        Is outside of the grid a undesirable region (in the sense of TSM)?
+    remember_paths : bool, default : False
+        Remember the paths that have been used. This is actually more of a hack and should not really be used.
+    verbosity : int, default : 0
+    stop_when_finished : str, default : ''
+        For Debugging only: stop when a certain operation has finished. See TOPOLOGY_STEP_LIST for the list of possible values.
     """
 
     global VERBOSITY
@@ -952,10 +1086,6 @@ def topology_classification(coordinates, states, default_evols, management_evols
     if isinstance(stop_when_finished, str):
         stop_when_finished = TOPOLOGY_STEP_LIST.index(stop_when_finished)
     assert isinstance(stop_when_finished, int) and stop_when_finished >= 0
-
-    # upgrading initial states to higher is not yet implemented
-    if upgradeable_initial_states:
-        raise NotImplementedError("upgrading of initally given states not yet implemented")
 
     coordinates = np.asarray(coordinates)
     states = np.asarray(states)
@@ -1004,8 +1134,8 @@ def topology_classification(coordinates, states, default_evols, management_evols
         state_evaluation=state_evaluation,
     )
 
-    shelter_empty = False
-    backwater_empty = False
+    # shelter_empty = False
+    # backwater_empty = False
 
     if all_evols:
         if not default_evols:
