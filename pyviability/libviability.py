@@ -1,6 +1,6 @@
 from __future__ import print_function, division, generators
 
-from . import PTopologyL as topo
+from . import tsm_style as topo
 
 from . import periodic_kdtree as periodkdt
 

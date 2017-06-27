@@ -7,7 +7,7 @@ from __future__ import division, print_function
 import pyviability as viab
 from pyviability import helper
 from pyviability import libviability as lv
-from pyviability import PTopologyL as topo
+from pyviability import tsm_style as topo
 
 # model imports
 import examples.AWModel as awm
