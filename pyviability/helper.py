@@ -91,6 +91,18 @@ import inspect
 
 
 def get_parameter_order(func):
+    """Get the order of positional arguments of a function.
+
+    Parameters
+    ----------
+    func : callable
+        function whose argument order should be determined
+
+    Returns
+    -------
+    list
+        list of string representations of `func`'s arguments in the expected order
+    """
     args, _, _, defaults = inspect.getargspec(func)
     assert len(args) >= 2, "your rhs function takes only %i arguments, but it "\
         "should take at least x0 and t for odeint to work with it" % len(args)
@@ -98,6 +110,24 @@ def get_parameter_order(func):
 
 
 def get_ordered_parameters(func, parameter_dict):
+    """Convert a dictionary of parameters for a function into an ordered tuple.
+
+    Parameters
+    ----------
+    func : callable
+        function whose argument order should be determined
+    parameter_dict : dict
+        dictionary with
+            `keys` : string representation of the positional arguments of `func`
+
+            `values` : corresponding values that should be sorted by the order the keys
+            appear as arguments for `func`
+
+    Returns
+    -------
+    tuple
+        tuple of the ordered parameters for `func`
+    """
     ordered_parameters = get_parameter_order(func)
     assert set(ordered_parameters).issubset(parameter_dict), "you did not " \
         "provide all parameters"
