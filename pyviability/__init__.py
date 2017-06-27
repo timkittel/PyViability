@@ -1,12 +1,13 @@
-# please add documentation!
-# and add which pep8 stuff we want to ignore
+"""
+This is the pyviability package. All relevant objects are importet from '.libviability'.
+"""
 
 import pkg_resources
 
 version = __version__ = pkg_resources.get_distribution(__package__).version
-"version string"
+"""version string"""
 version_info = __version_info__ = tuple(map(int, __version__.split(".")))
-"version tuple"
+"""version tuple"""
 
 del pkg_resources
 
