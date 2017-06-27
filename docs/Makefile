@@ -21,7 +21,7 @@ help:
 api:
 	@$(SPHINXBUILD_API) --force --separate --implicit-namespaces --output-dir="source/" "../pyviability/" "../pyviability/periodic_kdtree.py"
 
-html: clean api
+html: clean
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
