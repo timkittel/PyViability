@@ -1,6 +1,6 @@
 from __future__ import print_function, division, generators
 
-from . import tsm_style as topo
+from .tsm_style import tsm_colors
 
 from . import periodic_kdtree as periodkdt
 
@@ -118,19 +118,19 @@ COLORS = {
         UNSET: "blue",
         -SHELTER: "blue",
         -GLADE: "blue",
-        SHELTER: topo.cShelter,
-        GLADE: topo.cGlade,
-        LAKE: topo.cLake,
-        SUNNY_UP: topo.cSunnyUp,
-        DARK_UP: topo.cDarkUp,
-        BACKWATERS: topo.cBackwaters,
-        SUNNY_DOWN: topo.cSunnyDown,
-        DARK_DOWN: topo.cDarkDown,
-        SUNNY_EDDIES: topo.cSunnyEddie,
-        DARK_EDDIES: topo.cDarkEddie,
-        SUNNY_ABYSS: topo.cSunnyAbyss,
-        DARK_ABYSS: topo.cDarkAbyss,
-        TRENCH: topo.cTrench,
+        SHELTER: tsm_colors["cShelter"],
+        GLADE: tsm_colors["cGlade"],
+        LAKE: tsm_colors["cLake"],
+        SUNNY_UP: tsm_colors["cSunnyUp"],
+        DARK_UP: tsm_colors["cDarkUp"],
+        BACKWATERS: tsm_colors["cBackwaters"],
+        SUNNY_DOWN: tsm_colors["cSunnyDown"],
+        DARK_DOWN: tsm_colors["cDarkDown"],
+        SUNNY_EDDIES: tsm_colors["cSunnyEddie"],
+        DARK_EDDIES: tsm_colors["cDarkEddie"],
+        SUNNY_ABYSS: tsm_colors["cSunnyAbyss"],
+        DARK_ABYSS: tsm_colors["cDarkAbyss"],
+        TRENCH: tsm_colors["cTrench"],
         }
 
 
