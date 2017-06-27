@@ -8,7 +8,7 @@
     
     <title>pyviability.libviability &#8212; pyviability 0.1 documentation</title>
     
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/haiku.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
@@ -26,26 +26,31 @@
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
-   
-  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
-
+    <link rel="search" title="Search" href="../../search.html" /> 
   </head>
   <body role="document">
-  
+      <div class="header" role="banner"><h1 class="heading"><a href="../../index.html">
+          <span>pyviability 0.1 documentation</span></a></h1>
+        <h2 class="heading"><span>pyviability.libviability</span></h2>
+      </div>
+      <div class="topnav" role="navigation" aria-label="top navigation">
+      
+        <p>
+        <a class="uplink" href="../../index.html">Contents</a>
+        </p>
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body" role="main">
-            
+      </div>
+      <div class="content">
+        
+        
   <h1>Source code for pyviability.libviability</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">generators</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Basic module that contains most of the relevant routines.</span>
+<span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">PTopologyL</span> <span class="k">as</span> <span class="n">topo</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">generators</span>
+
+<span class="kn">from</span> <span class="nn">.tsm_style</span> <span class="k">import</span> <span class="n">tsm_colors</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">periodic_kdtree</span> <span class="k">as</span> <span class="n">periodkdt</span>
 
@@ -66,6 +71,20 @@
 <span class="kn">import</span> <span class="nn">itertools</span> <span class="k">as</span> <span class="nn">it</span>
 <span class="kn">import</span> <span class="nn">functools</span> <span class="k">as</span> <span class="nn">ft</span>
 <span class="kn">import</span> <span class="nn">datetime</span> <span class="k">as</span> <span class="nn">dt</span>
+
+<span class="c1">#################################################################</span>
+<span class="c1"># Disclaimer:</span>
+<span class="c1"># Most of the Code is written in functions so numba speed-up can</span>
+<span class="c1"># be used easily. Everything will be wrapped in classes as soon</span>
+<span class="c1"># as numba.jitclass has stabilized.</span>
+<span class="c1">#################################################################</span>
+
+<span class="c1">#################################################################</span>
+<span class="c1"># Some doc strings are as comments, because the functions should</span>
+<span class="c1"># not appear in the actual documentation. Usually, that is</span>
+<span class="c1"># because they are still experimental.</span>
+<span class="c1">#################################################################</span>
+
 
 <span class="c1"># flush the output of print by default</span>
 <span class="nb">print</span> <span class="o">=</span> <span class="n">ft</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="nb">print</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -163,23 +182,24 @@
         <span class="n">UNSET</span><span class="p">:</span> <span class="s2">&quot;blue&quot;</span><span class="p">,</span>
         <span class="o">-</span><span class="n">SHELTER</span><span class="p">:</span> <span class="s2">&quot;blue&quot;</span><span class="p">,</span>
         <span class="o">-</span><span class="n">GLADE</span><span class="p">:</span> <span class="s2">&quot;blue&quot;</span><span class="p">,</span>
-        <span class="n">SHELTER</span><span class="p">:</span> <span class="n">topo</span><span class="o">.</span><span class="n">cShelter</span><span class="p">,</span>
-        <span class="n">GLADE</span><span class="p">:</span> <span class="n">topo</span><span class="o">.</span><span class="n">cGlade</span><span class="p">,</span>
-        <span class="n">LAKE</span><span class="p">:</span> <span class="n">topo</span><span class="o">.</span><span class="n">cLake</span><span class="p">,</span>
-        <span class="n">SUNNY_UP</span><span class="p">:</span> <span class="n">topo</span><span class="o">.</span><span class="n">cSunnyUp</span><span class="p">,</span>
-        <span class="n">DARK_UP</span><span class="p">:</span> <span class="n">topo</span><span class="o">.</span><span class="n">cDarkUp</span><span class="p">,</span>
-        <span class="n">BACKWATERS</span><span class="p">:</span> <span class="n">topo</span><span class="o">.</span><span class="n">cBackwaters</span><span class="p">,</span>
-        <span class="n">SUNNY_DOWN</span><span class="p">:</span> <span class="n">topo</span><span class="o">.</span><span class="n">cSunnyDown</span><span class="p">,</span>
-        <span class="n">DARK_DOWN</span><span class="p">:</span> <span class="n">topo</span><span class="o">.</span><span class="n">cDarkDown</span><span class="p">,</span>
-        <span class="n">SUNNY_EDDIES</span><span class="p">:</span> <span class="n">topo</span><span class="o">.</span><span class="n">cSunnyEddie</span><span class="p">,</span>
-        <span class="n">DARK_EDDIES</span><span class="p">:</span> <span class="n">topo</span><span class="o">.</span><span class="n">cDarkEddie</span><span class="p">,</span>
-        <span class="n">SUNNY_ABYSS</span><span class="p">:</span> <span class="n">topo</span><span class="o">.</span><span class="n">cSunnyAbyss</span><span class="p">,</span>
-        <span class="n">DARK_ABYSS</span><span class="p">:</span> <span class="n">topo</span><span class="o">.</span><span class="n">cDarkAbyss</span><span class="p">,</span>
-        <span class="n">TRENCH</span><span class="p">:</span> <span class="n">topo</span><span class="o">.</span><span class="n">cTrench</span><span class="p">,</span>
+        <span class="n">SHELTER</span><span class="p">:</span> <span class="n">tsm_colors</span><span class="p">[</span><span class="s2">&quot;cShelter&quot;</span><span class="p">],</span>
+        <span class="n">GLADE</span><span class="p">:</span> <span class="n">tsm_colors</span><span class="p">[</span><span class="s2">&quot;cGlade&quot;</span><span class="p">],</span>
+        <span class="n">LAKE</span><span class="p">:</span> <span class="n">tsm_colors</span><span class="p">[</span><span class="s2">&quot;cLake&quot;</span><span class="p">],</span>
+        <span class="n">SUNNY_UP</span><span class="p">:</span> <span class="n">tsm_colors</span><span class="p">[</span><span class="s2">&quot;cSunnyUp&quot;</span><span class="p">],</span>
+        <span class="n">DARK_UP</span><span class="p">:</span> <span class="n">tsm_colors</span><span class="p">[</span><span class="s2">&quot;cDarkUp&quot;</span><span class="p">],</span>
+        <span class="n">BACKWATERS</span><span class="p">:</span> <span class="n">tsm_colors</span><span class="p">[</span><span class="s2">&quot;cBackwaters&quot;</span><span class="p">],</span>
+        <span class="n">SUNNY_DOWN</span><span class="p">:</span> <span class="n">tsm_colors</span><span class="p">[</span><span class="s2">&quot;cSunnyDown&quot;</span><span class="p">],</span>
+        <span class="n">DARK_DOWN</span><span class="p">:</span> <span class="n">tsm_colors</span><span class="p">[</span><span class="s2">&quot;cDarkDown&quot;</span><span class="p">],</span>
+        <span class="n">SUNNY_EDDIES</span><span class="p">:</span> <span class="n">tsm_colors</span><span class="p">[</span><span class="s2">&quot;cSunnyEddie&quot;</span><span class="p">],</span>
+        <span class="n">DARK_EDDIES</span><span class="p">:</span> <span class="n">tsm_colors</span><span class="p">[</span><span class="s2">&quot;cDarkEddie&quot;</span><span class="p">],</span>
+        <span class="n">SUNNY_ABYSS</span><span class="p">:</span> <span class="n">tsm_colors</span><span class="p">[</span><span class="s2">&quot;cSunnyAbyss&quot;</span><span class="p">],</span>
+        <span class="n">DARK_ABYSS</span><span class="p">:</span> <span class="n">tsm_colors</span><span class="p">[</span><span class="s2">&quot;cDarkAbyss&quot;</span><span class="p">],</span>
+        <span class="n">TRENCH</span><span class="p">:</span> <span class="n">tsm_colors</span><span class="p">[</span><span class="s2">&quot;cTrench&quot;</span><span class="p">],</span>
         <span class="p">}</span>
 
 
 <div class="viewcode-block" id="printv"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.printv">[docs]</a><span class="k">def</span> <span class="nf">printv</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">date_behind</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Print the output depending on the given verbosity.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="s2">&quot;flush&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;flush&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">if</span> <span class="n">verbosity</span> <span class="o">&lt;=</span> <span class="n">VERBOSITY</span><span class="p">:</span>
@@ -193,31 +213,62 @@
         <span class="nb">print</span><span class="p">(</span><span class="o">*</span><span class="n">print_args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="printd"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.printd">[docs]</a><span class="k">def</span> <span class="nf">printd</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">printd</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="c1"># Print the output depending on the global variable `DEDBUGGING`.</span>
     <span class="k">if</span> <span class="s2">&quot;flush&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;flush&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">if</span> <span class="n">DEBUGGING</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+        <span class="nb">print</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="Delta_series"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.Delta_series">[docs]</a><span class="k">def</span> <span class="nf">Delta_series</span><span class="p">(</span><span class="n">Delta_0</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">Delta_series</span><span class="p">(</span><span class="n">Delta_0</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+    <span class="c1"># create the detla series for a simplex-based grid</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">Delta_0</span> <span class="o">**</span> <span class="mi">2</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">q</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">n</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dim</span><span class="p">)]</span></div>
+    <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">q</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">n</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dim</span><span class="p">)]</span>
 
 
-<div class="viewcode-block" id="p_series"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.p_series">[docs]</a><span class="k">def</span> <span class="nf">p_series</span><span class="p">(</span><span class="n">Delta_0</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;\</span>
-<span class="sd">    returns the p vectors as an array p[i, j] where j enumerates the \</span>
-<span class="sd">    vector (and thus dimension) and i the component&quot;&quot;&quot;</span>
+<span class="k">def</span> <span class="nf">p_series</span><span class="p">(</span><span class="n">Delta_0</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+    <span class="c1"># returns the p vectors as an array p[i, j] where j enumerates the \</span>
+    <span class="c1"># vector (and thus dimension) and i the component</span>
     <span class="n">p_all</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">))</span>
     <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">Delta_n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">Delta_series</span><span class="p">(</span><span class="n">Delta_0</span><span class="p">,</span> <span class="n">dim</span><span class="p">)):</span>
         <span class="n">p_all</span><span class="p">[:</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p_all</span><span class="p">[:</span><span class="n">n</span><span class="p">,</span> <span class="p">:</span><span class="n">n</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">p_all</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">Delta_n</span>
-    <span class="k">return</span> <span class="n">p_all</span></div>
+    <span class="k">return</span> <span class="n">p_all</span>
 
 
-<div class="viewcode-block" id="generate_grid"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.generate_grid">[docs]</a><span class="k">def</span> <span class="nf">generate_grid</span><span class="p">(</span><span class="n">boundaries</span><span class="p">,</span> <span class="n">n0</span><span class="p">,</span> <span class="n">grid_type</span><span class="p">,</span> <span class="n">periodicity</span><span class="o">=</span><span class="p">[],</span> <span class="n">verbosity</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="generate_grid"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.generate_grid">[docs]</a><span class="k">def</span> <span class="nf">generate_grid</span><span class="p">(</span><span class="n">boundaries</span><span class="p">,</span> <span class="n">n0</span><span class="p">,</span> <span class="n">grid_type</span> <span class="o">=</span> <span class="s2">&quot;orthogonal&quot;</span><span class="p">,</span> <span class="n">periodicity</span><span class="o">=</span><span class="p">[],</span> <span class="n">verbosity</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generate a grid, that is already normalized to [0, 1]^dimension.</span>
+
+<span class="sd">    **Note:** This function also sets globally MAX_NEIGHBOR_DISTANCE, BOUNDS_EPSILON, STEPSIZE, ALL_NEIGHBORS_DISTANCE.</span>
+<span class="sd">    So if you don&#39;t use this function, you need to set it yourself by hand.</span>
+<span class="sd">    Later, this will be circumvented by using proper OO-programming.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    boundaries : array-like</span>
+<span class="sd">        shape (dim, 2), give the boundaries (min and max) for each dimension of the mode system</span>
+<span class="sd">    n0 : non-negative int</span>
+<span class="sd">        total number of points that the grid should have</span>
+<span class="sd">    grid_type : str, default: &quot;orthogonal&quot;</span>
+<span class="sd">        specify the grid_type to be created. experimental, only use if your know what you do</span>
+<span class="sd">    periodicity : array-like, default: []</span>
+<span class="sd">        specify if there is an peridicity given (to avoid overlapping points)</span>
+<span class="sd">    verbosity : bool, default: True</span>
+<span class="sd">        specify the verbosity</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (grid, scaling_vectors, offset, x_step) with</span>
+<span class="sd">            `grid`: the actual rescaled grid</span>
+
+<span class="sd">            `scaling_vectors`, `offset` : parameters to scale the grid back to the original size</span>
+
+<span class="sd">            `x_step` : stepsize of the grid</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">global</span> <span class="n">MAX_NEIGHBOR_DISTANCE</span><span class="p">,</span> <span class="n">BOUNDS_EPSILON</span><span class="p">,</span> <span class="n">STEPSIZE</span><span class="p">,</span> <span class="n">ALL_NEIGHBORS_DISTANCE</span>
+    <span class="c1"># These are set globally afterwards.</span>
 
     <span class="k">assert</span> <span class="n">grid_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;simplex-based&quot;</span><span class="p">,</span> <span class="s2">&quot;orthogonal&quot;</span><span class="p">],</span> <span class="s2">&quot;unkown grid type &#39;</span><span class="si">{!s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">grid_type</span><span class="p">)</span>
 
@@ -300,11 +351,6 @@
 <span class="k">def</span> <span class="nf">_generate_viability_single_point</span><span class="p">(</span><span class="n">evolutions</span><span class="p">,</span> <span class="n">state_evaluation</span><span class="p">,</span> <span class="n">use_numba</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nb_nopython</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">use_numba</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;numba usage doesn&#39;t really make sense here, because KDTREE cannot be numba jitted&quot;</span><span class="p">)</span>
-
-        <span class="c1"># isdispatcher = lambda x: isinstance(x, nb.dispatcher.Dispatcher)</span>
-        <span class="c1"># if not (isdispatcher(state_evaluation) and all(map(isdispatcher, evolutions))):</span>
-            <span class="c1"># warn.warn(&quot;you want to use numba, but some of the input stuff doesn&#39;t seem to be ready for compilation&quot;)</span>
-
     <span class="k">else</span><span class="p">:</span>
 
         <span class="k">def</span> <span class="nf">_viability_single_point</span><span class="p">(</span><span class="n">coordinate_index</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span>
@@ -315,6 +361,8 @@
             <span class="n">start_state</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="n">coordinate_index</span><span class="p">]</span>
 
             <span class="k">global</span> <span class="n">DEBUGGING</span><span class="p">,</span> <span class="n">PATHS</span>
+            <span class="c1"># Keep the below statements as they are rather useful for the debugging.</span>
+            <span class="c1"># Will be removed for the 1.0 release (one day ^^).</span>
             <span class="c1"># DEBUGGING = True</span>
             <span class="c1"># DEBUGGING = DEBUGGING and STATUS == &quot;TOPOLOGY MANAGEABLE COMPUTATION&quot;</span>
             <span class="c1"># DEBUGGING = DEBUGGING and (start_state == 1)</span>
@@ -358,7 +406,7 @@
 
 
 <span class="k">def</span> <span class="nf">_state_evaluation_kdtree_line</span><span class="p">(</span><span class="n">traj</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;deprecated (for now ^^)&quot;&quot;&quot;</span>
+    <span class="c1"># deprecated (for now ^^)</span>
     <span class="n">start_point</span> <span class="o">=</span> <span class="n">traj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">final_point</span> <span class="o">=</span> <span class="n">traj</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="c1"># print(&quot;start_point&quot;, start_point)</span>
@@ -451,8 +499,11 @@
     <span class="k">return</span> <span class="n">closest_index</span><span class="p">,</span> <span class="n">final_state</span>
 
 
-<span class="c1"># @nb.jit</span>
-<div class="viewcode-block" id="state_evaluation_kdtree_numba"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.state_evaluation_kdtree_numba">[docs]</a><span class="k">def</span> <span class="nf">state_evaluation_kdtree_numba</span><span class="p">(</span><span class="n">traj</span><span class="p">):</span>
+<div class="viewcode-block" id="state_evaluation_kdtree"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.state_evaluation_kdtree">[docs]</a><span class="k">def</span> <span class="nf">state_evaluation_kdtree</span><span class="p">(</span><span class="n">traj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get the closest point to the end of the trajectory in the grid using KDTREE.</span>
+
+<span class="sd">    **Note:** Used internally during the viability computations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># global DEBUGGING</span>
     <span class="n">point</span> <span class="o">=</span> <span class="n">traj</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
@@ -482,16 +533,16 @@
     <span class="k">return</span> <span class="n">tree_index</span><span class="p">,</span> <span class="n">STATES</span><span class="p">[</span><span class="n">tree_index</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="state_evaluation_kdtree"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.state_evaluation_kdtree">[docs]</a><span class="k">def</span> <span class="nf">state_evaluation_kdtree</span><span class="p">(</span><span class="n">traj</span><span class="p">):</span>
-    <span class="n">point</span> <span class="o">=</span> <span class="n">traj</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">OUT_OF_BOUNDS</span><span class="p">:</span>
-        <span class="n">projected_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">BASIS_VECTORS_INV</span><span class="p">,</span> <span class="n">point</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[(</span><span class="mi">1</span><span class="p">,),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)])</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span> <span class="n">BOUNDS</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">projected_values</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span> <span class="n">BOUNDS</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">projected_values</span> <span class="p">):</span>  <span class="c1"># is the point out-of-bounds?</span>
-            <span class="k">if</span> <span class="n">DEBUGGING</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;out-of-bounds&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">OUT_OF_BOUNDS_STATE</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">tree_index</span> <span class="o">=</span> <span class="n">KDTREE</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">tree_index</span><span class="p">,</span> <span class="n">STATES</span><span class="p">[</span><span class="n">tree_index</span><span class="p">]</span></div>
+<span class="c1"># def state_evaluation_kdtree(traj):</span>
+<span class="c1">#     point = traj[-1]</span>
+<span class="c1">#     if OUT_OF_BOUNDS:</span>
+<span class="c1">#         projected_values = np.tensordot(BASIS_VECTORS_INV, point, axes=[(1,), (0,)])</span>
+<span class="c1">#         if np.any( BOUNDS[:, 0] &gt; projected_values) or np.any( BOUNDS[:, 1] &lt; projected_values ):  # is the point out-of-bounds?</span>
+<span class="c1">#             if DEBUGGING:</span>
+<span class="c1">#                 print(&quot;out-of-bounds&quot;)</span>
+<span class="c1">#             return OUT_OF_BOUNDS_STATE</span>
+<span class="c1">#     _, tree_index = KDTREE.query(point, 1)</span>
+<span class="c1">#     return tree_index, STATES[tree_index]</span>
 
 
 <div class="viewcode-block" id="pre_calculation_hook_kdtree"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.pre_calculation_hook_kdtree">[docs]</a><span class="k">def</span> <span class="nf">pre_calculation_hook_kdtree</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span>
@@ -499,6 +550,12 @@
                                 <span class="n">periodicity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                 <span class="n">grid_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                 <span class="n">out_of_bounds</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Do all prepratory stuff for a viability computation.</span>
+
+<span class="sd">    **Note:** Usually used internally only.</span>
+
+<span class="sd">    This function creates the KDTREE, makes a variety of variables globally accessible.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">global</span> <span class="n">KDTREE</span><span class="p">,</span> <span class="n">STATES</span><span class="p">,</span> <span class="n">BASIS_VECTORS</span><span class="p">,</span> <span class="n">BASIS_VECTORS_INV</span><span class="p">,</span> <span class="n">BOUNDS</span><span class="p">,</span> <span class="n">OUT_OF_BOUNDS</span>
     <span class="n">STATES</span> <span class="o">=</span> <span class="n">states</span>
 
@@ -565,6 +622,14 @@
 
 
 <div class="viewcode-block" id="RemovingSetWrapper"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.RemovingSetWrapper">[docs]</a><span class="k">class</span> <span class="nc">RemovingSetWrapper</span><span class="p">(</span><span class="nb">set</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;RemovingSetWrapper removes elements on iteration.</span>
+
+<span class="sd">    **Note:** Usually used internally only.</span>
+
+<span class="sd">    When iterating over RemovingSetWrapper, the iterated element is removed.</span>
+<span class="sd">    This manages basically which points are still needed to iterate over in the viability</span>
+<span class="sd">    algorithm.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span>
     <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -613,8 +678,8 @@
 
 
 <div class="viewcode-block" id="get_neighbor_indices_via_cKD"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.get_neighbor_indices_via_cKD">[docs]</a><span class="k">def</span> <span class="nf">get_neighbor_indices_via_cKD</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">neighbor_list</span><span class="o">=</span><span class="p">[]):</span>
-    <span class="sd">&quot;&quot;&quot;extend &#39;neighbor_list&#39; by &#39;tree_neighbors&#39;, a list that contains the nearest neighbors found trough cKDTree&quot;&quot;&quot;</span>
-
+    <span class="sd">&quot;&quot;&quot;extend &#39;neighbor_list&#39; by all neighbors that are closer than STEPSIZE + BOUNDS_EPSILON</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
 
     <span class="n">tree_neighbors</span> <span class="o">=</span> <span class="n">KDTREE</span><span class="o">.</span><span class="n">query_ball_point</span><span class="p">(</span><span class="n">KDTREE</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">STEPSIZE</span> <span class="o">+</span> <span class="n">BOUNDS_EPSILON</span><span class="p">)</span>
@@ -625,20 +690,20 @@
     <span class="k">return</span> <span class="n">neighbor_list</span></div>
 
 
-<div class="viewcode-block" id="get_neighbor_indices"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.get_neighbor_indices">[docs]</a><span class="k">def</span> <span class="nf">get_neighbor_indices</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">neighbor_list</span><span class="o">=</span><span class="p">[]):</span>
-    <span class="sd">&quot;&quot;&quot;append all neighboring indices of &#39;index&#39; to &#39;neighbor_list&#39; if they are within &#39;shape&#39;&quot;&quot;&quot;</span>
-
-    <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-    <span class="n">shape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">diff_index</span> <span class="ow">in</span> <span class="n">it</span><span class="o">.</span><span class="n">product</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">repeat</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)):</span>
-        <span class="n">diff_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">diff_index</span><span class="p">)</span>
-        <span class="n">new_index</span> <span class="o">=</span> <span class="n">index</span> <span class="o">+</span> <span class="n">diff_index</span>
-
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">diff_index</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span> <span class="n">new_index</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span> <span class="n">new_index</span> <span class="o">&lt;</span> <span class="n">shape</span> <span class="p">):</span>
-            <span class="n">neighbor_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">new_index</span><span class="p">))</span>
-
-    <span class="k">return</span> <span class="n">neighbor_list</span></div>
+<span class="c1"># def get_neighbor_indices(index, shape, neighbor_list=[]):</span>
+<span class="c1">#     &quot;&quot;&quot;append all neighboring indices of &#39;index&#39; to &#39;neighbor_list&#39; if they are within &#39;shape&#39;&quot;&quot;&quot;</span>
+<span class="c1">#</span>
+<span class="c1">#     index = np.asarray(index)</span>
+<span class="c1">#     shape = np.asarray(shape)</span>
+<span class="c1">#</span>
+<span class="c1">#     for diff_index in it.product([-1, 0, 1], repeat=len(index)):</span>
+<span class="c1">#         diff_index = np.asarray(diff_index)</span>
+<span class="c1">#         new_index = index + diff_index</span>
+<span class="c1">#</span>
+<span class="c1">#         if np.count_nonzero(diff_index) and np.all( new_index &gt;= 0 ) and np.all( new_index &lt; shape ):</span>
+<span class="c1">#             neighbor_list.append(tuple(new_index))</span>
+<span class="c1">#</span>
+<span class="c1">#     return neighbor_list</span>
 
 
 <span class="k">def</span> <span class="nf">_viability_kernel</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> 
@@ -713,6 +778,7 @@
 
 
 <div class="viewcode-block" id="print_evaluation"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.print_evaluation">[docs]</a><span class="k">def</span> <span class="nf">print_evaluation</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">print_empty_regions</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">print_unknown</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Print an Evaluation of the results of an TSM-Computation.&quot;&quot;&quot;</span>
     <span class="n">total</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">size</span>
     <span class="n">total_length</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">total</span><span class="p">)))</span>
     <span class="n">num_sum</span> <span class="o">=</span> <span class="mi">0</span>
@@ -763,12 +829,47 @@
                       <span class="n">ordered_params</span><span class="p">,</span>
                       <span class="n">offset</span><span class="p">,</span>
                       <span class="n">scaling_vector</span><span class="p">,</span>
-                      <span class="n">returning</span><span class="o">=</span><span class="s2">&quot;integration&quot;</span><span class="p">,</span>
-                      <span class="n">remember</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                      <span class="n">returning</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>
                       <span class="n">use_numba</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                       <span class="n">nb_nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                       <span class="n">rescaling_epsilon</span><span class="o">=</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">6</span><span class="p">,</span>
                       <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a *run-function* from a right-hand side of an ordinary differential equation.</span>
+
+<span class="sd">    The *run-function* takes a starting point and a time and returns a trajectory that</span>
+<span class="sd">    follows the corresponding ODE. It basically provides the step from a generic ODE to</span>
+<span class="sd">    a map that gives the next point. The reason the return value is actually a trajectory</span>
+<span class="sd">    and not just the next point is simply future compatibility.</span>
+
+<span class="sd">    **Note:** This function automatically rescales the RHS to work on [0, 1]^dim and homogenizes</span>
+<span class="sd">    the time (see https://arxiv.org/abs/1706.04542).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rhs : callable</span>
+<span class="sd">        Function that representes the RHS of the ODE. The first two arguments should be</span>
+<span class="sd">        the point `x` in state space and the time `t`. The following arguments should be</span>
+<span class="sd">        parameters that are need to be given, if necessary.</span>
+<span class="sd">    ordered_params : tuple</span>
+<span class="sd">        The parameters needed for rhs.</span>
+<span class="sd">    offset : array-like</span>
+<span class="sd">        output from grid rescaling, see `generate_grid`</span>
+<span class="sd">    scaling_vector : array-like</span>
+<span class="sd">        output from grid rescaling, see `generate_grid`</span>
+<span class="sd">    returning : str, default : &quot;linear&quot;</span>
+<span class="sd">        only change of you know what you do</span>
+<span class="sd">    use_numa : bool, default : True</span>
+<span class="sd">        Should numba be used?</span>
+<span class="sd">    nb_nb_nopython : bool, default : True,</span>
+<span class="sd">        If numba is used, force nopython-mode?</span>
+<span class="sd">    rescaling_rescaling_epsilon :  float, default : 1e-6</span>
+<span class="sd">        When homogenizing the time, which \epsilong value should be used. see https://arxiv.org/abs/1706.04542</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    callable</span>
+<span class="sd">        The corresponding run-function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">scaling_vector</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">Sinv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">la</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">S</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -897,9 +998,7 @@
         <span class="c1"># else:</span>
             <span class="c1"># return traj</span>
 
-    <span class="k">if</span> <span class="n">returning</span> <span class="o">==</span> <span class="s2">&quot;integration&quot;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">integration</span>
-    <span class="k">elif</span> <span class="n">returning</span> <span class="o">==</span> <span class="s2">&quot;linear&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">returning</span> <span class="o">==</span> <span class="s2">&quot;linear&quot;</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">normalized_linear_approximation</span>
     <span class="k">elif</span> <span class="n">returning</span> <span class="o">==</span> <span class="s2">&quot;PS&quot;</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">rhs_scaled_to_one_PS</span>
@@ -908,6 +1007,7 @@
 
 
 <div class="viewcode-block" id="scaled_to_one_sunny"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.scaled_to_one_sunny">[docs]</a><span class="k">def</span> <span class="nf">scaled_to_one_sunny</span><span class="p">(</span><span class="n">is_sunny</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">scaling_vector</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Scale the is_sunny function so it operates on [0, 1]^dim.&quot;&quot;&quot;</span>
     <span class="n">S</span> <span class="o">=</span> <span class="n">scaling_vector</span>
     <span class="n">Sinv</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
 
@@ -921,41 +1021,43 @@
     <span class="k">return</span> <span class="n">scaled_sunny</span></div>
 
 
-<div class="viewcode-block" id="trajectory_length"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.trajectory_length">[docs]</a><span class="k">def</span> <span class="nf">trajectory_length</span><span class="p">(</span><span class="n">traj</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span> <span class="n">la</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span> <span class="n">traj</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">traj</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span></div>
+<span class="c1"># def trajectory_length(traj):</span>
+<span class="c1">#     return np.sum( la.norm( traj[1:] - traj[:-1], axis=-1) )</span>
 
 
-<div class="viewcode-block" id="trajectory_length_index"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.trajectory_length_index">[docs]</a><span class="k">def</span> <span class="nf">trajectory_length_index</span><span class="p">(</span><span class="n">traj</span><span class="p">,</span> <span class="n">target_length</span><span class="p">):</span>
-    <span class="n">lengths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span> <span class="n">la</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span> <span class="n">traj</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">traj</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">target_length</span> <span class="o">&lt;</span> <span class="n">lengths</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="n">traj</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># incl. last element</span>
-    <span class="n">index_0</span><span class="p">,</span> <span class="n">index_1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">traj</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
-
-    <span class="k">while</span> <span class="n">index_0</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">index_1</span><span class="p">,</span> <span class="n">index_1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]:</span>
-        <span class="n">middle_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span> <span class="p">(</span><span class="n">index_0</span> <span class="o">+</span> <span class="n">index_1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span> <span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">lengths</span><span class="p">[</span><span class="n">middle_index</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">target_length</span><span class="p">:</span>
-            <span class="n">index_0</span> <span class="o">=</span> <span class="n">middle_index</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">index_1</span> <span class="o">=</span> <span class="n">middle_index</span>
-
-    <span class="k">return</span> <span class="n">index_1</span></div>
+<span class="c1"># def trajectory_length_index(traj, target_length):</span>
+<span class="c1">#     lengths = np.cumsum( la.norm( traj[1:] - traj[:-1], axis=-1) )</span>
+<span class="c1">#</span>
+<span class="c1">#     if target_length &lt; lengths[-1]:</span>
+<span class="c1">#         return traj.shape[0]  # incl. last element</span>
+<span class="c1">#     index_0, index_1 = 0, traj.shape[0] - 1</span>
+<span class="c1">#</span>
+<span class="c1">#     while index_0 not in [index_1, index_1 - 1]:</span>
+<span class="c1">#         middle_index = int( (index_0 + index_1)/2 )</span>
+<span class="c1">#</span>
+<span class="c1">#         if lengths[middle_index] &lt;= target_length:</span>
+<span class="c1">#             index_0 = middle_index</span>
+<span class="c1">#         else:</span>
+<span class="c1">#             index_1 = middle_index</span>
+<span class="c1">#</span>
+<span class="c1">#     return index_1</span>
 
 
 <div class="viewcode-block" id="backscaling_grid"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.backscaling_grid">[docs]</a><span class="k">def</span> <span class="nf">backscaling_grid</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">scaling_vector</span><span class="p">,</span> <span class="n">offset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Scale a grid back( after computation) from [0, 1]^dim to the original state space.&quot;&quot;&quot;</span>
     <span class="n">S</span> <span class="o">=</span> <span class="n">scaling_vector</span>
     <span class="n">Sinv</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
     <span class="n">new_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">Sinv</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[(</span><span class="mi">1</span><span class="p">,),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)])</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
     <span class="k">return</span> <span class="n">new_grid</span></div>
 
 
-<div class="viewcode-block" id="reset_initial_states"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.reset_initial_states">[docs]</a><span class="k">def</span> <span class="nf">reset_initial_states</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">states</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">reset_initial_states</span><span class="p">(</span><span class="n">states</span><span class="p">):</span>
     <span class="c1"># All initially given states are set to positive counterparts</span>
-    <span class="n">states</span><span class="p">[(</span><span class="n">states</span> <span class="o">&lt;</span> <span class="n">UNSET</span><span class="p">)]</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span></div>
+    <span class="n">states</span><span class="p">[(</span><span class="n">states</span> <span class="o">&lt;</span> <span class="n">UNSET</span><span class="p">)]</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
 
 
 <div class="viewcode-block" id="set_global_status"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.set_global_status">[docs]</a><span class="k">def</span> <span class="nf">set_global_status</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">print_verbosity</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Setting the global Status of a Computation so it can be read out in case of Errors.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">STATUS_PREFIX</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;STATUS_PREFIX has to be set, maybe you found a bug?&quot;</span>
     <span class="k">global</span> <span class="n">STATUS</span>
     <span class="n">STATUS</span> <span class="o">=</span> <span class="n">STATUS_INFIX</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">STATUS_PREFIX</span><span class="p">,)</span> <span class="o">+</span> <span class="n">args</span><span class="p">)</span>
@@ -968,15 +1070,15 @@
 
 
 <div class="viewcode-block" id="get_global_status"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.get_global_status">[docs]</a><span class="k">def</span> <span class="nf">get_global_status</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Return the current Status of a computation.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">STATUS</span></div>
 
 
 <div class="viewcode-block" id="topology_classification"><a class="viewcode-back" href="../../pyviability.libviability.html#pyviability.libviability.topology_classification">[docs]</a><span class="k">def</span> <span class="nf">topology_classification</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">default_evols</span><span class="p">,</span> <span class="n">management_evols</span><span class="p">,</span> <span class="n">is_sunny</span><span class="p">,</span>
                             <span class="n">periodic_boundaries</span><span class="o">=</span><span class="p">[],</span>
-                            <span class="n">upgradeable_initial_states</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                             <span class="n">compute_eddies</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                             <span class="n">pre_calculation_hook</span><span class="o">=</span><span class="n">pre_calculation_hook_kdtree</span><span class="p">,</span>  <span class="c1"># None means nothing to be done</span>
-                            <span class="n">state_evaluation</span><span class="o">=</span><span class="n">state_evaluation_kdtree_numba</span><span class="p">,</span>
+                            <span class="n">state_evaluation</span><span class="o">=</span><span class="n">state_evaluation_kdtree</span><span class="p">,</span>
                             <span class="n">post_computation_hook</span><span class="o">=</span><span class="n">reset_initial_states</span><span class="p">,</span>
                             <span class="n">grid_type</span><span class="o">=</span><span class="s2">&quot;orthogonal&quot;</span><span class="p">,</span>
                             <span class="n">out_of_bounds</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># either bool or bool array with shape (dim, ) or shape (dim, 2) with values for each boundary</span>
@@ -984,7 +1086,40 @@
                             <span class="n">verbosity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                             <span class="n">stop_when_finished</span><span class="o">=</span><span class="n">TOPOLOGY_STEP_LIST</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>  <span class="c1"># means everything goes</span>
                             <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;calculates different regions of the state space using viability theory algorithms</span>
+    <span class="sd">&quot;&quot;&quot;Estimate different regions of the state space using viability theory algorithms.</span>
+
+<span class="sd">    This function computes the Topology of Sustainable Management (TSM) classification of the state space (see [1] for mathematical details).</span>
+
+<span class="sd">    The first application can be found in [2].</span>
+
+<span class="sd">    [1] http://www.earth-syst-dynam.net/7/21/2016/esd-7-21-2016.html</span>
+
+<span class="sd">    [2] https://arxiv.org/abs/1706.04542</span>
+
+<span class="sd">    *Note:* A `state` is an integer referring to a certain region (in the sense of TSM), corresponding as to how they are defined in the header of this file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    coordinates : array-like</span>
+<span class="sd">        Grid used for the computation, shape (n0, dim) where n0 is the total number of points and dim the dimension of the system</span>
+<span class="sd">    states : array-like</span>
+<span class="sd">        associates to each grid point the corresponding state. negative values correspond to preset values given by the user. **The results will be saved in here.**</span>
+<span class="sd">    compute_eddies : bool, default : True</span>
+<span class="sd">        Should the Eddies be computed as well. As indicated in [2], this may take quite a bit of computational power and is hence switched of generally.</span>
+<span class="sd">    pre_pre_calculation_hook : callable, default : pre_pre_calculation_hook_kdtree</span>
+<span class="sd">        ignore if you don&#39;t know what to do</span>
+<span class="sd">    state_evaluation : callable, default : state_evaluation_kdtree</span>
+<span class="sd">        ignore if you don&#39;t know what to do</span>
+<span class="sd">    post_computation_hook : callable, default : reset_initial_states</span>
+<span class="sd">        ignore if you don&#39;t know what to do</span>
+<span class="sd">    grid_type : str, default : &quot;orthogonal&quot;</span>
+<span class="sd">    out_of_bounds : bool, default : True</span>
+<span class="sd">        Is outside of the grid a undesirable region (in the sense of TSM)?</span>
+<span class="sd">    remember_paths : bool, default : False</span>
+<span class="sd">        Remember the paths that have been used. This is actually more of a hack and should not really be used.</span>
+<span class="sd">    verbosity : int, default : 0</span>
+<span class="sd">    stop_when_finished : str, default : &#39;&#39;</span>
+<span class="sd">        For Debugging only: stop when a certain operation has finished. See TOPOLOGY_STEP_LIST for the list of possible values.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">global</span> <span class="n">VERBOSITY</span>
@@ -997,10 +1132,6 @@
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stop_when_finished</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">stop_when_finished</span> <span class="o">=</span> <span class="n">TOPOLOGY_STEP_LIST</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">stop_when_finished</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stop_when_finished</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">stop_when_finished</span> <span class="o">&gt;=</span> <span class="mi">0</span>
-
-    <span class="c1"># upgrading initial states to higher is not yet implemented</span>
-    <span class="k">if</span> <span class="n">upgradeable_initial_states</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;upgrading of initally given states not yet implemented&quot;</span><span class="p">)</span>
 
     <span class="n">coordinates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span>
     <span class="n">states</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
@@ -1049,8 +1180,8 @@
         <span class="n">state_evaluation</span><span class="o">=</span><span class="n">state_evaluation</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">shelter_empty</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">backwater_empty</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># shelter_empty = False</span>
+    <span class="c1"># backwater_empty = False</span>
 
     <span class="k">if</span> <span class="n">all_evols</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">default_evols</span><span class="p">:</span>
@@ -1299,44 +1430,18 @@
 
 </pre></div>
 
-          </div>
-        </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../../index.html">Documentation overview</a><ul>
-  <li><a href="../index.html">Module code</a><ul>
-  </ul></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
-    <form class="search" action="../../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
-    </form>
-</div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
-        </div>
+      <div class="bottomnav" role="navigation" aria-label="bottom navigation">
+      
+        <p>
+        <a class="uplink" href="../../index.html">Contents</a>
+        </p>
+
       </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="footer">
-      &copy;2017, Tim Kittel.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
-      
-    </div>
 
-    
-
-    
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Tim Kittel.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.1.
+    </div>
   </body>
 </html>

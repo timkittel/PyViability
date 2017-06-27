@@ -8,7 +8,7 @@
     
     <title>pyviability.helper &#8212; pyviability 0.1 documentation</title>
     
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/haiku.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
@@ -26,111 +26,129 @@
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
-   
-  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
-
+    <link rel="search" title="Search" href="../../search.html" /> 
   </head>
   <body role="document">
-  
+      <div class="header" role="banner"><h1 class="heading"><a href="../../index.html">
+          <span>pyviability 0.1 documentation</span></a></h1>
+        <h2 class="heading"><span>pyviability.helper</span></h2>
+      </div>
+      <div class="topnav" role="navigation" aria-label="top navigation">
+      
+        <p>
+        <a class="uplink" href="../../index.html">Contents</a>
+        </p>
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body" role="main">
-            
+      </div>
+      <div class="content">
+        
+        
   <h1>Source code for pyviability.helper</h1><div class="highlight"><pre>
-<span></span>
-<span class="kn">import</span> <span class="nn">contextlib</span> <span class="k">as</span> <span class="nn">ctl</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">helper.py provides small utilities that don&#39;t really fit enywhere else but are needed in the package.</span>
+<span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">sys</span>
+
+
+<span class="c1"># import contextlib as ctl</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
-
-<span class="kn">from</span> <span class="nn">scipy.spatial</span> <span class="k">import</span> <span class="n">cKDTree</span>
-
-
-<span class="n">REMEMBERED</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># used by remembering decorator</span>
-
-<span class="k">def</span> <span class="nf">_plot_nothing</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">traj</span><span class="p">,</span> <span class="n">management_option</span><span class="p">):</span>
-    <span class="k">pass</span>
+<span class="c1"># import numpy as np</span>
+<span class="c1"># import os</span>
+<span class="c1"># import sys</span>
+<span class="c1">#</span>
+<span class="c1"># from scipy.spatial import cKDTree</span>
 
 
-<span class="k">def</span> <span class="nf">_plot2d</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">traj</span><span class="p">,</span> <span class="n">management_option</span><span class="p">):</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">traj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">traj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lightblue&quot;</span> <span class="k">if</span> <span class="n">management_option</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
+<span class="c1"># REMEMBERED = {}  # used by remembering decorator</span>
+
+<span class="c1"># def _plot_nothing(ax, traj, management_option):</span>
+<span class="c1">#     pass</span>
+<span class="c1">#</span>
+<span class="c1">#</span>
+<span class="c1"># def _plot2d(ax, traj, management_option):</span>
+<span class="c1">#     ax.plot(traj[0], traj[1],</span>
+<span class="c1">#                 color=&quot;lightblue&quot; if management_option == 0 else &quot;black&quot;)</span>
+<span class="c1">#</span>
+<span class="c1">#</span>
+<span class="c1"># def _plot3d(ax, traj, management_option):</span>
+<span class="c1">#     ax.plot3D(xs=traj[0], ys=traj[1], zs=traj[2],</span>
+<span class="c1">#                 color=&quot;lightblue&quot; if management_option == 0 else &quot;black&quot;)</span>
+<span class="c1">#</span>
+<span class="c1"># def _dont_follow(*args, **kwargs):</span>
+<span class="c1">#     return False</span>
 
 
-<span class="k">def</span> <span class="nf">_plot3d</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">traj</span><span class="p">,</span> <span class="n">management_option</span><span class="p">):</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">plot3D</span><span class="p">(</span><span class="n">xs</span><span class="o">=</span><span class="n">traj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ys</span><span class="o">=</span><span class="n">traj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">zs</span><span class="o">=</span><span class="n">traj</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
-                <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lightblue&quot;</span> <span class="k">if</span> <span class="n">management_option</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
-
-<span class="k">def</span> <span class="nf">_dont_follow</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="k">return</span> <span class="kc">False</span>
-
-
-<div class="viewcode-block" id="follow_point"><a class="viewcode-back" href="../../pyviability.helper.html#pyviability.helper.follow_point">[docs]</a><span class="k">def</span> <span class="nf">follow_point</span><span class="p">(</span><span class="n">starting_indices</span><span class="p">,</span> <span class="n">path_object</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> 
-                 <span class="n">verbosity</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> 
-                 <span class="n">follow_condition</span><span class="o">=</span><span class="n">_dont_follow</span><span class="p">,</span>
-                 <span class="n">plot_func</span><span class="o">=</span><span class="n">_plot_nothing</span><span class="p">,</span>
-                 <span class="n">plot_axes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">run_function</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">stepsize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="p">):</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">follow_condition</span> <span class="ow">is</span> <span class="n">_dont_follow</span><span class="p">:</span>
-        <span class="n">tree</span> <span class="o">=</span> <span class="n">cKDTree</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span>
-
-    <span class="n">starting_indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">starting_indices</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">verbosity</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;starting points and states for paths:&quot;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">starting_indices</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{!s}</span><span class="s2"> --- </span><span class="si">{:&gt;2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">grid</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span> <span class="n">states</span><span class="p">[</span><span class="n">ind</span><span class="p">]))</span>
-        <span class="nb">print</span><span class="p">()</span>
-    <span class="n">plotted_indices</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;calculating and plotting paths ... &quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">ind0</span> <span class="ow">in</span> <span class="n">starting_indices</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">ind0</span> <span class="ow">in</span> <span class="n">plotted_indices</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">plotted_indices</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ind0</span><span class="p">)</span>
-        <span class="n">x0</span> <span class="o">=</span> <span class="n">grid</span><span class="p">[</span><span class="n">ind0</span><span class="p">]</span>
-        <span class="n">ind1</span> <span class="o">=</span> <span class="n">paths</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">ind1</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">x1</span> <span class="o">=</span> <span class="n">paths</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">ind0</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">follow_condition</span><span class="p">(</span><span class="n">ind0</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">states</span><span class="p">):</span>
-                <span class="k">assert</span> <span class="ow">not</span> <span class="n">run_function</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;please provide a run_function&quot;</span>
-                <span class="k">assert</span> <span class="ow">not</span> <span class="n">stepsize</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;please provide a stepsize&quot;</span>
-                <span class="n">_</span><span class="p">,</span> <span class="n">x1</span> <span class="o">=</span> <span class="n">run_function</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">stepsize</span><span class="p">)</span>
-                <span class="n">_</span><span class="p">,</span> <span class="n">ind1</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">continue</span>
-        <span class="n">plot_func</span><span class="p">(</span><span class="n">plot_axes</span><span class="p">,</span> <span class="n">traj</span><span class="p">,</span> <span class="n">management_option</span><span class="p">)</span>
-
-
-        <span class="k">if</span> <span class="n">verbosity</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{!s}</span><span class="s2"> --- </span><span class="si">{:&gt;2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">grid</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span> <span class="n">states</span><span class="p">[</span><span class="n">ind</span><span class="p">]))</span>
-            <span class="n">_</span><span class="p">,</span> <span class="n">x1</span> <span class="o">=</span> <span class="n">default_run</span><span class="p">(</span><span class="n">grid</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span> <span class="n">stepsize</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;new_point: &quot;</span><span class="p">,</span> <span class="n">x1</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;going to index:&quot;</span><span class="p">,</span> <span class="n">paths</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">ind</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">paths</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="o">&gt;=</span><span class="mi">0</span><span class="p">:</span>
-                <span class="n">starting_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">paths</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">ind</span><span class="p">])</span>
-            <span class="k">elif</span> <span class="n">FOLLOW</span><span class="p">:</span>
-                <span class="n">_</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;going to index (tree):&quot;</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
-                <span class="n">starting_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">is_inside</span><span class="p">([</span><span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">],</span> <span class="n">args</span><span class="o">.</span><span class="n">plot_boundaries</span><span class="p">)):</span>
-            <span class="n">traj</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">))</span>
-            <span class="n">ax3d</span><span class="o">.</span><span class="n">plot3D</span><span class="p">(</span><span class="n">xs</span><span class="o">=</span><span class="n">traj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ys</span><span class="o">=</span><span class="n">traj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">zs</span><span class="o">=</span><span class="n">traj</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
-                        <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lightblue&quot;</span> <span class="k">if</span> <span class="n">paths</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
-            <span class="n">starting_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">paths</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">ind</span><span class="p">])</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;done</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+<span class="c1"># def follow_point(starting_indices, paths, grid, states,</span>
+<span class="c1">#                  verbosity=1,</span>
+<span class="c1">#                  follow_condition=_dont_follow,</span>
+<span class="c1">#                  plot_func=_plot_nothing,</span>
+<span class="c1">#                  plot_axes=None,</span>
+<span class="c1">#                  run_function=None,</span>
+<span class="c1">#                  stepsize=None,</span>
+<span class="c1">#                  ):</span>
+<span class="c1">#</span>
+<span class="c1">#     if not follow_condition is _dont_follow:</span>
+<span class="c1">#         tree = cKDTree(grid)</span>
+<span class="c1">#</span>
+<span class="c1">#     starting_indices = list(starting_indices)</span>
+<span class="c1">#     if verbosity &gt;= 1:</span>
+<span class="c1">#         print(&quot;starting points and states for paths:&quot;)</span>
+<span class="c1">#         for ind in starting_indices:</span>
+<span class="c1">#             print(&quot;{!s} --- {:&gt;2}&quot;.format(grid[ind], states[ind]))</span>
+<span class="c1">#         print()</span>
+<span class="c1">#     plotted_indices = set()</span>
+<span class="c1">#     print(&quot;calculating and plotting paths ... &quot;, end=&quot;&quot;, flush=True)</span>
+<span class="c1">#     for ind0 in starting_indices:</span>
+<span class="c1">#         if ind0 in plotted_indices:</span>
+<span class="c1">#             continue</span>
+<span class="c1">#         plotted_indices.add(ind0)</span>
+<span class="c1">#         x0 = grid[ind0]</span>
+<span class="c1">#         ind1 = paths[1][ind]</span>
+<span class="c1">#         if ind1 &gt; 0:</span>
+<span class="c1">#             x1 = paths[0][ind0]</span>
+<span class="c1">#         else:</span>
+<span class="c1">#             if follow_condition(ind0, grid, states):</span>
+<span class="c1">#                 assert not run_function is None, &quot;please provide a run_function&quot;</span>
+<span class="c1">#                 assert not stepsize is None, &quot;please provide a stepsize&quot;</span>
+<span class="c1">#                 _, x1 = run_function(x0, stepsize)</span>
+<span class="c1">#                 _, ind1 = tree.query(x1)</span>
+<span class="c1">#             else:</span>
+<span class="c1">#                 continue</span>
+<span class="c1">#         plot_func(plot_axes, traj, management_option)</span>
+<span class="c1">#</span>
+<span class="c1">#</span>
+<span class="c1">#         if verbosity &gt;= 2:</span>
+<span class="c1">#             print(&quot;{!s} --- {:&gt;2}&quot;.format(grid[ind], states[ind]))</span>
+<span class="c1">#             _, x1 = default_run(grid[ind], stepsize)</span>
+<span class="c1">#             print(&quot;new_point: &quot;, x1)</span>
+<span class="c1">#             print(&quot;going to index:&quot;, paths[1][ind])</span>
+<span class="c1">#             if paths[1][ind] &gt;=0:</span>
+<span class="c1">#                 starting_indices.append(paths[1][ind])</span>
+<span class="c1">#             elif FOLLOW:</span>
+<span class="c1">#                 _, index = tree.query(x1)</span>
+<span class="c1">#                 print(&quot;going to index (tree):&quot;, index)</span>
+<span class="c1">#                 starting_indices.append(index)</span>
+<span class="c1">#         if np.all(is_inside([x0, x1], args.plot_boundaries)):</span>
+<span class="c1">#             traj = list(zip(x0, x1))</span>
+<span class="c1">#             ax3d.plot3D(xs=traj[0], ys=traj[1], zs=traj[2],</span>
+<span class="c1">#                         color=&quot;lightblue&quot; if paths[2][ind] == 0 else &quot;black&quot;)</span>
+<span class="c1">#             starting_indices.append(paths[1][ind])</span>
+<span class="c1">#     print(&quot;done\n&quot;)</span>
 
 
 <div class="viewcode-block" id="get_parameter_order"><a class="viewcode-back" href="../../pyviability.helper.html#pyviability.helper.get_parameter_order">[docs]</a><span class="k">def</span> <span class="nf">get_parameter_order</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get the order of positional arguments of a function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    func : callable</span>
+<span class="sd">        function whose argument order should be determined</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        list of string representations of `func`&#39;s arguments in the expected order</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">args</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">defaults</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getargspec</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;your rhs function takes only </span><span class="si">%i</span><span class="s2"> arguments, but it &quot;</span>\
         <span class="s2">&quot;should take at least x0 and t for odeint to work with it&quot;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
@@ -138,109 +156,101 @@
 
 
 <div class="viewcode-block" id="get_ordered_parameters"><a class="viewcode-back" href="../../pyviability.helper.html#pyviability.helper.get_ordered_parameters">[docs]</a><span class="k">def</span> <span class="nf">get_ordered_parameters</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">parameter_dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert a dictionary of parameters for a function into an ordered tuple.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    func : callable</span>
+<span class="sd">        function whose argument order should be determined</span>
+<span class="sd">    parameter_dict : dict</span>
+<span class="sd">        dictionary with</span>
+<span class="sd">            `keys` : string representation of the positional arguments of `func`</span>
+
+<span class="sd">            `values` : corresponding values that should be sorted by the order the keys</span>
+<span class="sd">            appear as arguments for `func`</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        tuple of the ordered parameters for `func`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ordered_parameters</span> <span class="o">=</span> <span class="n">get_parameter_order</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">ordered_parameters</span><span class="p">)</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">parameter_dict</span><span class="p">),</span> <span class="s2">&quot;you did not &quot;</span> \
         <span class="s2">&quot;provide all parameters&quot;</span>
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">parameter_dict</span><span class="p">[</span><span class="n">par</span><span class="p">]</span> <span class="k">for</span> <span class="n">par</span> <span class="ow">in</span> <span class="n">ordered_parameters</span><span class="p">])</span></div>
 
 
-<div class="viewcode-block" id="fileno"><a class="viewcode-back" href="../../pyviability.helper.html#pyviability.helper.fileno">[docs]</a><span class="k">def</span> <span class="nf">fileno</span><span class="p">(</span><span class="n">file_or_fd</span><span class="p">):</span>
-    <span class="n">fd</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">file_or_fd</span><span class="p">,</span> <span class="s1">&#39;fileno&#39;</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">file_or_fd</span><span class="p">)()</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Expected a file (`.fileno()`) or a file descriptor&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">fd</span></div>
+<span class="c1"># def fileno(file_or_fd):</span>
+<span class="c1">#     fd = getattr(file_or_fd, &#39;fileno&#39;, lambda: file_or_fd)()</span>
+<span class="c1">#     if not isinstance(fd, int):</span>
+<span class="c1">#         raise ValueError(&quot;Expected a file (`.fileno()`) or a file descriptor&quot;)</span>
+<span class="c1">#     return fd</span>
 
 
-<span class="nd">@ctl</span><span class="o">.</span><span class="n">contextmanager</span>
-<div class="viewcode-block" id="stdout_redirected"><a class="viewcode-back" href="../../pyviability.helper.html#pyviability.helper.stdout_redirected">[docs]</a><span class="k">def</span> <span class="nf">stdout_redirected</span><span class="p">(</span><span class="n">to</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    http://stackoverflow.com/a/22434262/190597 (J.F. Sebastian)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">stdout</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">stdout</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span>
+<span class="c1"># @ctl.contextmanager</span>
+<span class="c1"># def stdout_redirected(to=os.devnull, stdout=None):</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     http://stackoverflow.com/a/22434262/190597 (J.F. Sebastian)</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     if stdout is None:</span>
+<span class="c1">#         stdout = sys.stdout</span>
+<span class="c1">#</span>
+<span class="c1">#     stdout_fd = fileno(stdout)</span>
+<span class="c1">#     # copy stdout_fd before it is overwritten</span>
+<span class="c1">#     # NOTE: `copied` is inheritable on Windows when duplicating a standard</span>
+<span class="c1">#     # stream</span>
+<span class="c1">#     with os.fdopen(os.dup(stdout_fd), &#39;wb&#39;) as copied:</span>
+<span class="c1">#         stdout.flush()  # flush library buffers that dup2 knows nothing about</span>
+<span class="c1">#         try:</span>
+<span class="c1">#             os.dup2(fileno(to), stdout_fd)  # $ exec &gt;&amp;to</span>
+<span class="c1">#         except ValueError:  # filename</span>
+<span class="c1">#             with open(to, &#39;wb&#39;) as to_file:</span>
+<span class="c1">#                 os.dup2(to_file.fileno(), stdout_fd)  # $ exec &gt; to</span>
+<span class="c1">#         try:</span>
+<span class="c1">#             yield stdout  # allow code to be run with the redirected stdout</span>
+<span class="c1">#         finally:</span>
+<span class="c1">#             # restore stdout to its previous value</span>
+<span class="c1">#             # NOTE: dup2 makes stdout_fd inheritable unconditionally</span>
+<span class="c1">#             stdout.flush()</span>
+<span class="c1">#             os.dup2(copied.fileno(), stdout_fd)  # $ exec &gt;&amp;copied</span>
 
-    <span class="n">stdout_fd</span> <span class="o">=</span> <span class="n">fileno</span><span class="p">(</span><span class="n">stdout</span><span class="p">)</span>
-    <span class="c1"># copy stdout_fd before it is overwritten</span>
-    <span class="c1"># NOTE: `copied` is inheritable on Windows when duplicating a standard</span>
-    <span class="c1"># stream</span>
-    <span class="k">with</span> <span class="n">os</span><span class="o">.</span><span class="n">fdopen</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">dup</span><span class="p">(</span><span class="n">stdout_fd</span><span class="p">),</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">copied</span><span class="p">:</span>
-        <span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>  <span class="c1"># flush library buffers that dup2 knows nothing about</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">fileno</span><span class="p">(</span><span class="n">to</span><span class="p">),</span> <span class="n">stdout_fd</span><span class="p">)</span>  <span class="c1"># $ exec &gt;&amp;to</span>
-        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># filename</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">to</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">to_file</span><span class="p">:</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">to_file</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">stdout_fd</span><span class="p">)</span>  <span class="c1"># $ exec &gt; to</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">yield</span> <span class="n">stdout</span>  <span class="c1"># allow code to be run with the redirected stdout</span>
-        <span class="k">finally</span><span class="p">:</span>
-            <span class="c1"># restore stdout to its previous value</span>
-            <span class="c1"># NOTE: dup2 makes stdout_fd inheritable unconditionally</span>
-            <span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">copied</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">stdout_fd</span><span class="p">)</span>  <span class="c1"># $ exec &gt;&amp;copied</span></div>
 
-
-<div class="viewcode-block" id="remembering"><a class="viewcode-back" href="../../pyviability.helper.html#pyviability.helper.remembering">[docs]</a><span class="k">class</span> <span class="nc">remembering</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">remember</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">remember</span> <span class="o">=</span> <span class="n">remember</span>
-
-    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">remember</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">f</span>
-
-        <span class="k">global</span> <span class="n">REMEMBERED</span>
-        <span class="n">REMEMBERED</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-
-        <span class="k">def</span> <span class="nf">remembering_f</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">stepsize</span><span class="p">):</span>
-            <span class="k">global</span> <span class="n">REMEMBERED</span>
-            <span class="n">p_tuple</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">p_tuple</span> <span class="ow">in</span> <span class="n">REMEMBERED</span><span class="p">[</span><span class="n">f</span><span class="p">]:</span>
-                <span class="k">return</span> <span class="n">REMEMBERED</span><span class="p">[</span><span class="n">f</span><span class="p">][</span><span class="n">p_tuple</span><span class="p">]</span>
-            <span class="n">p2</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">stepsize</span><span class="p">)</span>
-            <span class="n">REMEMBERED</span><span class="p">[</span><span class="n">f</span><span class="p">][</span><span class="n">p_tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">p2</span>
-            <span class="k">return</span> <span class="n">p2</span>
-
-        <span class="k">return</span> <span class="n">remembering_f</span></div>
+<span class="c1"># class remembering(object):</span>
+<span class="c1">#</span>
+<span class="c1">#     def __init__(self, remember=True):</span>
+<span class="c1">#         self.remember = remember</span>
+<span class="c1">#</span>
+<span class="c1">#     def __call__(self, f):</span>
+<span class="c1">#         if not self.remember:</span>
+<span class="c1">#             return f</span>
+<span class="c1">#</span>
+<span class="c1">#         global REMEMBERED</span>
+<span class="c1">#         REMEMBERED[f] = {}</span>
+<span class="c1">#</span>
+<span class="c1">#         def remembering_f(p, stepsize):</span>
+<span class="c1">#             global REMEMBERED</span>
+<span class="c1">#             p_tuple = tuple(p)</span>
+<span class="c1">#             if p_tuple in REMEMBERED[f]:</span>
+<span class="c1">#                 return REMEMBERED[f][p_tuple]</span>
+<span class="c1">#             p2 = f(p, stepsize)</span>
+<span class="c1">#             REMEMBERED[f][p_tuple] = p2</span>
+<span class="c1">#             return p2</span>
+<span class="c1">#</span>
+<span class="c1">#         return remembering_f</span>
 </pre></div>
 
-          </div>
-        </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../../index.html">Documentation overview</a><ul>
-  <li><a href="../index.html">Module code</a><ul>
-  </ul></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
-    <form class="search" action="../../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
-    </form>
-</div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
-        </div>
+      <div class="bottomnav" role="navigation" aria-label="bottom navigation">
+      
+        <p>
+        <a class="uplink" href="../../index.html">Contents</a>
+        </p>
+
       </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="footer">
-      &copy;2017, Tim Kittel.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
-      
-    </div>
 
-    
-
-    
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Tim Kittel.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.1.
+    </div>
   </body>
 </html>
