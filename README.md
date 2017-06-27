@@ -1,6 +1,6 @@
 
 
-Find the Documentation under (https://timkittel.github.io/PyViability/)[https://timkittel.github.io/PyViability/]
+Find the Documentation under [https://timkittel.github.io/PyViability/](https://timkittel.github.io/PyViability/)
 
 ### argument completion (optional, only for test script)
 
