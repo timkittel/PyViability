@@ -43,8 +43,57 @@
       <div class="content">
         
         
-  <div class="section" id="pyviability-helper-module">
-<h1>pyviability.helper module<a class="headerlink" href="#pyviability-helper-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-pyviability.helper">
+<span id="pyviability-helper-module"></span><h1>pyviability.helper module<a class="headerlink" href="#module-pyviability.helper" title="Permalink to this headline">¶</a></h1>
+<p>helper.py provides small utilities that don&#8217;t really fit enywhere else but are needed in the package.</p>
+<dl class="function">
+<dt id="pyviability.helper.get_ordered_parameters">
+<code class="descclassname">pyviability.helper.</code><code class="descname">get_ordered_parameters</code><span class="sig-paren">(</span><em>func</em>, <em>parameter_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/helper.html#get_ordered_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.helper.get_ordered_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a dictionary of parameters for a function into an ordered tuple.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>func</strong> (<em>callable</em>) &#8211; function whose argument order should be determined</li>
+<li><strong>parameter_dict</strong> (<em>dict</em>) &#8211; <dl class="docutils">
+<dt>dictionary with</dt>
+<dd><cite>keys</cite> : string representation of the positional arguments of <cite>func</cite><p class="last"><cite>values</cite> : corresponding values that should be sorted by the order the keys
+appear as arguments for <cite>func</cite></p>
+</dd>
+</dl>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">tuple of the ordered parameters for <cite>func</cite></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">tuple</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyviability.helper.get_parameter_order">
+<code class="descclassname">pyviability.helper.</code><code class="descname">get_parameter_order</code><span class="sig-paren">(</span><em>func</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyviability/helper.html#get_parameter_order"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyviability.helper.get_parameter_order" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the order of positional arguments of a function.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>func</strong> (<em>callable</em>) &#8211; function whose argument order should be determined</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list of string representations of <cite>func</cite>&#8216;s arguments in the expected order</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 
 
