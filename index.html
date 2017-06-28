@@ -47,18 +47,35 @@
 <h1>Welcome to PyViability&#8217;s documentation!<a class="headerlink" href="#welcome-to-pyviability-s-documentation" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
+<div class="section" id="todo">
+<h2>TODO<a class="headerlink" href="#todo" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li>figure out how to do verbatim / code style in rst and use it below</li>
+</ol>
+</div>
 <div class="section" id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
-<p><em>Disclaimer:</em> The library is still preliminary work. If you want to work with it, please contact me (<a class="reference external" href="mailto:Tim&#46;Kittel&#37;&#52;&#48;pik-potsdam&#46;de">Tim<span>&#46;</span>Kittel<span>&#64;</span>pik-potsdam<span>&#46;</span>de</a>)!</p>
+<p><em>Disclaimer: The library is still preliminary work. As I am happy about everybody who&#8217;d consider using the library, I&#8217;ll help you as much as I can and might consider writing a proper tutorial and extend the Documentation. Simpy contact me (Tim.Kittel&#64;pik-potsdam.de).</em></p>
 <p>PyViability is small library for Computations related to Viability Theory, particular the Viability Kernel and the Capture Basin, and for the Classifications of (a) Models(&#8216;) (state space) with respect to the Topology of Sustainable Management [1].</p>
 <p>The library was developped during the work on [2] and is in a very preliminary state. I am happy for any support to improve the library.</p>
 <p>[1] <a class="reference external" href="http://www.earth-syst-dynam.net/7/21/2016/esd-7-21-2016.html">http://www.earth-syst-dynam.net/7/21/2016/esd-7-21-2016.html</a></p>
 <p>[2] <a class="reference external" href="https://arxiv.org/abs/1706.04542">https://arxiv.org/abs/1706.04542</a></p>
 <p>Find the source <a class="reference external" href="https://github.com/timkittel/PyViability">here</a>.</p>
 </div>
+<div class="section" id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h2>
+<p>The code was tested with <strong>Python 3.5</strong> under <strong>Ubuntu Xenial</strong> only. If you want to get it running on a different system, please contact me (<a class="reference external" href="mailto:Tim&#46;Kittel&#37;&#52;&#48;pik-potsdam&#46;de">Tim<span>&#46;</span>Kittel<span>&#64;</span>pik-potsdam<span>&#46;</span>de</a>).</p>
+<p>To install the library, run
+<code class="docutils literal"><span class="pre">`</span>
+<span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/timkittel/PyViability.git</span>
+<span class="pre">cd</span> <span class="pre">PyViability</span>
+<span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span>
+<span class="pre">`</span></code></p>
+</div>
 <div class="section" id="tutorial">
 <h2>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h2>
-<p>Because the library is still very preliminary there is no real tutorial here, yet. Check out the <cite>run-examples.py</cite>, which is a script that can through a few examples.</p>
+<p>Because the library is still very preliminary there is no real tutorial here, yet. Check out the <cite>run-examples.py</cite>, which is a script that can through a few examples. There are no real explanations to the context of the example models, but generally, you can understand the dynamics of the models by carefully analyzing the flows, that are plotted. The default flow is shown with think lines in light blue, the management flows with thin, dark blue, dotted (or dashed) lines.</p>
+<p>As some of the constructions there are a bit tricky, the easiest is probably to simply contact me (<a class="reference external" href="mailto:Tim&#46;Kittel&#37;&#52;&#48;pik-potsdam&#46;de">Tim<span>&#46;</span>Kittel<span>&#64;</span>pik-potsdam<span>&#46;</span>de</a>). As I am happy about everybody who&#8217;d consider using the library, I&#8217;ll help you as much as I can and might consider writing a proper tutorial and extend the Documentation.</p>
 </div>
 <div class="section" id="api-documentation">
 <h2>API-Documentation<a class="headerlink" href="#api-documentation" title="Permalink to this headline">¶</a></h2>
