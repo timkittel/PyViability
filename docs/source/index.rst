@@ -34,7 +34,7 @@ Tutorial
 Because the library is still very preliminary there is no real tutorial here, yet. Check out the `run-examples.py`, which is a script that can through a few examples.
 
 API-Documentation
--------------
+-----------------
 
 * :ref:`modindex`
 
