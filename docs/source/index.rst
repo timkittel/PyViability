@@ -10,10 +10,17 @@ Welcome to PyViability's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+TODO
+----
+
+1. figure out how to do verbatim / code style in rst and use it below
+2. fix `pyviability` examples
+3. fix pyviability `setup.py`
+
 Introduction
 ------------
 
-*Disclaimer:* The library is still preliminary work. If you want to work with it, please contact me (Tim.Kittel@pik-potsdam.de)!
+*Disclaimer: The library is still preliminary work. As I am happy about everybody who'd consider using the library, I'll help you as much as I can and might consider writing a proper tutorial and extend the Documentation. Simpy contact me (Tim.Kittel@pik-potsdam.de).*
 
 PyViability is small library for Computations related to Viability Theory, particular the Viability Kernel and the Capture Basin, and for the Classifications of (a) Models(') (state space) with respect to the Topology of Sustainable Management [1].
 
@@ -27,11 +34,22 @@ Find the source here_.
 
 .. _here: https://github.com/timkittel/PyViability
 
+Setup
+-----
+
+The code was tested with **Python 3.5** under **Ubuntu Xenial** only. If you want to get it running on a different system, please contact me (Tim.Kittel@pik-potsdam.de).
+
+To install the library, run
+```
+git clone https://github.com/timkittel/PyViability.git
+cd PyViability
+pip install -e .
+```
 
 Tutorial
 --------
 
-Because the library is still very preliminary there is no real tutorial here, yet. Check out the `run-examples.py`, which is a script that can through a few examples.
+Because the library is still very preliminary there is no real tutorial here, yet. Check out the `run-examples.py`, which is a script that can through a few examples. As some of the constructions there are a bit tricky, the easiest is probably to simply contact me (Tim.Kittel@pik-potsdam.de). As I am happy about everybody who'd consider using the library, I'll help you as much as I can and might consider writing a proper tutorial and extend the Documentation.
 
 API-Documentation
 -----------------
