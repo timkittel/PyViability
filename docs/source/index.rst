@@ -10,11 +10,6 @@ Welcome to PyViability's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-TODO
-----
-
-1. figure out how to do verbatim / code style in rst and use it below
-
 Introduction
 ------------
 
@@ -38,11 +33,12 @@ Setup
 The code was tested with **Python 3.5** under **Ubuntu Xenial** only. If you want to get it running on a different system, please contact me (Tim.Kittel@pik-potsdam.de).
 
 To install the library, run
-```
-git clone https://github.com/timkittel/PyViability.git
-cd PyViability
-pip install -e .
-```
+
+.. code-block:: rest
+
+   git clone https://github.com/timkittel/PyViability.git
+   cd PyViability
+   pip install -e .
 
 Tutorial
 --------
