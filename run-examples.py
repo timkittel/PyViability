@@ -51,23 +51,6 @@ def save_figure(filename, fig=None):
 
 
 def plotPhaseSpace( evol, boundaries, steps = 2000, xlabel = "", ylabel = "", colorbar = True, style = {}, alpha = None , maskByCond = None, invertAxes = False, ax = plt, lwspeed = False):
-	"""\
-plotPhaseSpace( evol, (Xmin, Ymin, Xmax, Ymax), steps = 2000, xlabel = "", ylabel = "", colorbar = True, style = {}, alpha = None , zeroByCond = None, transPlot = "x"):
-
-plot the phase space of the function evol,
-
-Input:
-	evol = evolution function, i.e. deriv from Vera
-	boundaries = [Xmin, Ymin, Xmax, Ymax] = minimal/maximal values until where the phase space should be plotted
-	saveToFile = target file for plot (None = not saved)
-	colorbar = show color bar on right side
-	style = set a custom style for the streamplot
-	alpha = opacity of the stremplot lines
-	maskByCond = set parts of the grid to zero if it's not defined for the complete plot (needed for Anderies Model)
-
-	NOT UP-TO-DATE!!!!
-"""
-
 	# separate the boundaries
 	Xmin, Ymin, Xmax, Ymax = boundaries
 
@@ -162,11 +145,43 @@ def generate_example(default_rhss,
                      management_rhssPS=None,
                      out_of_bounds=True,
                      compute_eddies=False,
-                     rescaling_epsilon=0.,
+                     rescaling_epsilon=1e-6,
                      xlabel=None,
                      ylabel=None,
                      set_ticks=None,
                      ):
+    """Generate the example function for each example.
+
+    :param default_rhss: list of callables
+        length 1, right-hand-side function of the default option. For future compatibiility, this was chosen to be a list already.
+    :param management_rhss: list of callables
+        right-hand-side functions of the management options
+    :param sunny_fct: callable
+        function that determines whether a point / an array of points is in the sunny region
+    :param boundaries: array-like, shape : (dim, 2)
+        for each dimension of the model, give the lower and upper boundary
+    :param default_parameters: list of dict, optional
+        length 1, the dict contains the parameter values for the default option. For future compatibiility, this was chosen to be a list already.
+    :param management_parameters: list of dict, optional
+        each dict contains the parameter values for the each management option respectively
+    :param periodicity: list, optional
+        provide the periodicity of the model's phase space
+    :param default_rhssPS: list of callables, optional
+        if the default_rhss are not callable for arrays (which is necessary for the plotting of the phase space), then provide a corresponding (list of) function(s) here
+    :param management_rhssPS:list of callables, optional
+        if the management_rhss are not callable for arrays (which is necessary for the plotting of the phase space), then provide a corresponding (list of) function(s) here
+    :param out_of_bounds: bool, default : True
+        If going out of the bundaries is interpreted as being in the undesirable region.
+    :param compute_eddies:
+        Should the eddies be computed? (Becaus the computation of Eddies might take long, this is skipped for models where it's know that there are no Eddies.)
+    :param rescaling_epsilon:
+        The epsilon for the time homogenization, see https://arxiv.org/abs/1706.04542 for details.
+    :param xlabel:
+    :param ylabel:
+    :param set_ticks:
+    :return: callable
+        function that when being called computes the specific example
+    """
 
     plotPS = lambda rhs, boundaries, style: plotPhaseSpace(rhs, [boundaries[0][0], boundaries[1][0], boundaries[0][1], boundaries[1][1]], colorbar=False, style=style)
 
