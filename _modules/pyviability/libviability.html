@@ -1051,8 +1051,9 @@
     <span class="k">return</span> <span class="n">new_grid</span></div>
 
 
-<span class="k">def</span> <span class="nf">reset_initial_states</span><span class="p">(</span><span class="n">states</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">reset_initial_states</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">states</span><span class="p">):</span>
     <span class="c1"># All initially given states are set to positive counterparts</span>
+    <span class="c1"># coordinates is given because this is the standard for a post_computation_hook of topology_classification (see there)</span>
     <span class="n">states</span><span class="p">[(</span><span class="n">states</span> <span class="o">&lt;</span> <span class="n">UNSET</span><span class="p">)]</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
 
 
