@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# activate the conda environment
+source activate ays
+
 # build the docs
 cd docs
 make clean
