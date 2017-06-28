@@ -24,12 +24,12 @@ if sys.version_info < required_python_version:
 
 
 setup(name="pyviability",
-      version="0.15",
+      version="0.2.0",
       description="a library for computation of viabilty sets and TSM sets",
-      url="not yet there",
+      url="https://timkittel.github.io/PyViability/",
       author="Tim Kittel",
       author_email="Tim.Kittel@pik-potsdam.de",
-      license="whatever for now",
+      license="BSD 2-Clause",
       packages=["pyviability"],
       python_requires=required_python_string,
       install_requires=[
