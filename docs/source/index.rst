@@ -43,7 +43,7 @@ To install the library, run
 Tutorial
 --------
 
-Because the library is still very preliminary there is no real tutorial here, yet. Check out the `run-examples.py`, which is a script that can through a few examples. There are no real explanations to the context of the example models, but generally, you can understand the dynamics of the models by carefully analyzing the flows, that are plotted. The default flow is shown with think lines in light blue, the management flows with thin, dark blue, dotted (or dashed) lines.
+Because the library is still very preliminary there is no real tutorial here, yet. Check out the `run-examples.py`, which is a script that provides a few examples. There are no real explanations to the context of the example models, but generally, you can understand the dynamics of the models by carefully analyzing the flows, that are plotted. The default flow is shown with think lines in light blue, the management flows with thin, dark blue, dotted (or dashed) lines.
 
 As some of the constructions there are a bit tricky, the easiest is probably to simply contact me (Tim.Kittel@pik-potsdam.de). As I am happy about everybody who'd consider using the library, I'll help you as much as I can and might consider writing a proper tutorial and extend the Documentation.
 
