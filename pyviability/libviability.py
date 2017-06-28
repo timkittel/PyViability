@@ -1005,8 +1005,9 @@ def backscaling_grid(grid, scaling_vector, offset):
     return new_grid
 
 
-def reset_initial_states(states):
+def reset_initial_states(coordinates, states):
     # All initially given states are set to positive counterparts
+    # coordinates is given because this is the standard for a post_computation_hook of topology_classification (see there)
     states[(states < UNSET)] *= -1
 
 

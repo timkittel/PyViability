@@ -146,6 +146,7 @@ def generate_example(default_rhss,
                      out_of_bounds=True,
                      compute_eddies=False,
                      rescaling_epsilon=1e-6,
+                     stepsize=None,
                      xlabel=None,
                      ylabel=None,
                      set_ticks=None,
@@ -174,6 +175,8 @@ def generate_example(default_rhss,
         If going out of the bundaries is interpreted as being in the undesirable region.
     :param compute_eddies:
         Should the eddies be computed? (Becaus the computation of Eddies might take long, this is skipped for models where it's know that there are no Eddies.)
+    :param stepsize
+        step size used during the viability kernel computation
     :param rescaling_epsilon:
         The epsilon for the time homogenization, see https://arxiv.org/abs/1706.04542 for details.
     :param xlabel:
@@ -255,11 +258,15 @@ def generate_example(default_rhss,
         if (not backscaling) and plot_points:
             # figure_size = (15, 5 * np.sqrt(3) if grid_type == "simplex-based" else 15)
             # figure_size = (15, 5 * np.sqrt(3) if grid_type == "simplex-based" else 15)
-            fig = plt.figure(figsize=figure_size, tight_layout=True)
+            fig = plt.figure(example_name, figsize=figure_size, tight_layout=True)
 
         # print(lv.STEPSIZE)
         # lv.STEPSIZE = 2 * x_step
-        lv.STEPSIZE = 2 * x_step * max([1, np.sqrt( n0 / 30 )])  # prop to 1/sqrt(n0)
+        if stepsize is None:
+            lv.STEPSIZE = 2 * x_step * max([1, np.sqrt( n0 / 30 )])  # prop to 1/sqrt(n0)
+        else:
+            lv.STEPSIZE = stepsize
+        print(lv.STEPSIZE)
         # print(lv.STEPSIZE)
         # assert False
         print("STEPSIZE / x_step = {:5.3f}".format(lv.STEPSIZE / x_step))
@@ -281,7 +288,7 @@ def generate_example(default_rhss,
             grid = viab.backscaling_grid(grid, scaling_factor, offset)
 
             if plot_points:
-                fig = plt.figure(figsize=figure_size, tight_layout=True)
+                fig = plt.figure(example_name, figsize=figure_size, tight_layout=True)
                 # fig = plt.figure(figsize=(15, 15), tight_layout=True)
 
                 if not flow_only:
@@ -309,7 +316,7 @@ def generate_example(default_rhss,
 
 
             if plot_areas:
-                fig = plt.figure(figsize=figure_size, tight_layout=True)
+                fig = plt.figure(example_name, figsize=figure_size, tight_layout=True)
 
                 if not flow_only:
                     viab.plot_areas(grid, states)
@@ -364,7 +371,7 @@ def generate_example(default_rhss,
 
 
             if plot_areas:
-                fig = plt.figure(figsize=(15, 15), tight_layout=True)
+                fig = plt.figure(example_name, figsize=(15, 15), tight_layout=True)
 
                 if not flow_only:
                     viab.plot_areas(grid, states)
@@ -417,8 +424,9 @@ EXAMPLES = {
                                  management_parameters=[{"beta":awm.beta_DG, "theta":awm.theta_default}],
                                  out_of_bounds=False,
                                  xlabel=r"excess atmospheric carbon $A$ [GtC]",
-                                 ylabel=r"economic production $Y$ [trillion US$]",
+                                 ylabel=r"economic production $Y$ [trillion US\$]",
                                  set_ticks=awm.set_ticks,
+                                 stepsize=0.055,
                                  ),
             "aw-model-dg-bifurc":
                 generate_example([awm.AW_rescaled_rhs],
@@ -430,7 +438,7 @@ EXAMPLES = {
                                  out_of_bounds=False,
                                  compute_eddies=True,
                                  xlabel=r"excess atmospheric carbon $A$ [GtC]",
-                                 ylabel=r"economic production $Y$ [trillion US$]",
+                                 ylabel=r"economic production $Y$ [trillion US\$]",
                                  set_ticks=awm.set_ticks,
                                  ),
             "aw-model-srm":
@@ -443,17 +451,19 @@ EXAMPLES = {
                                  out_of_bounds=False,
                                  compute_eddies=True,
                                  ),
-            "pendulum":
-                generate_example([gpm.pendulum_rhs],
-                                 [gpm.pendulum_rhs],
-                                 gpm.pendulum_sunny,
-                                 [[0, 2*np.pi],[-2.2,1.2]],
-                                 default_parameters=[{"a":0.0}],
-                                 management_parameters=[{"a":0.6}],
-                                 periodicity=[1, -1],
-                                 compute_eddies=True,
-                                 rescaling_epsilon=1e-3,
-                                 ),
+            ## The Pendulum example was taken out, because it is hamiltonian, making the whole algorithm getting unstable.
+            ## This would be a future task to fix with an algorithm that does not simply linearly approximate.
+            # "pendulum":
+            #     generate_example([gpm.pendulum_rhs],
+            #                      [gpm.pendulum_rhs],
+            #                      gpm.pendulum_sunny,
+            #                      [[0, 2*np.pi],[-2.2,1.2]],
+            #                      default_parameters=[{"a":0.0}],
+            #                      management_parameters=[{"a":0.6}],
+            #                      periodicity=[1, -1],
+            #                      compute_eddies=True,
+            #                      rescaling_epsilon=1e-3,
+            #                      ),
             "swing-eq":
                 generate_example([sqm.swing_rhs],
                                  [sqm.swing_rhs],
@@ -465,6 +475,7 @@ EXAMPLES = {
                                  compute_eddies=False,
                                  rescaling_epsilon=1e-3,
                                  out_of_bounds=False, # set because it creates a nice picture for these specific parameters
+                                 stepsize=0.035,
                                  ),
             "plants":
                 generate_example([pm.plants_rhs],
@@ -474,18 +485,20 @@ EXAMPLES = {
                                  default_parameters=[{"ax":0.2, "ay":0.2, "prod":2}],
                                  management_parameters=[{"ax":0.1, "ay":0.1, "prod":2}, {"ax":2, "ay":0, "prod":2}],
                                  out_of_bounds=False,
+                                 stepsize=0.035,
                                  ),
-            "tech-change":
-                generate_example([tcm.techChange_rhs],
-                                 [tcm.techChange_rhs],
-                                 tcm.techChange_sunny,
-                                 [[0, 1], [0, 2]],
-                                 default_parameters=[
-                                     dict(rvar = 1, pBmin = 0.15, pE = 0.3, delta = 0.025, smax = 0.3, sBmax = 0.)],
-                                 management_parameters=[
-                                     dict(rvar = 1, pBmin = 0.15, pE = 0.3, delta = 0.025, smax = 0.3, sBmax = 0.5)],
-                                 management_rhssPS = [tcm.techChange_rhsPS],
-                                 ),
+            ## Taken out because it contains a critical point.
+            # "tech-change":
+            #     generate_example([tcm.techChange_rhs],
+            #                      [tcm.techChange_rhs],
+            #                      tcm.techChange_sunny,
+            #                      [[0, 1], [0, 2]],
+            #                      default_parameters=[
+            #                          dict(rvar = 1, pBmin = 0.15, pE = 0.3, delta = 0.025, smax = 0.3, sBmax = 0.)],
+            #                      management_parameters=[
+            #                          dict(rvar = 1, pBmin = 0.15, pE = 0.3, delta = 0.025, smax = 0.3, sBmax = 0.5)],
+            #                      management_rhssPS = [tcm.techChange_rhsPS],
+            #                      ),
             "easter-a":
                 generate_example([prm.easter_rhs],
                                  [prm.easter_rhs],
@@ -554,7 +567,16 @@ PLOT_CHOICES = ["points", "areas"]
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="test script for the standard examples")
+    parser = argparse.ArgumentParser(
+        description="""A test script for the standard examples
+        
+        If you would like to know more details on the actual meaning of the examples,
+        please contact the author. Generally, you can understand the dynamics of the 
+        models by carefully analyzing the flows, that are plotted. The default flow
+        is shown with think lines in light blue, the management flows with thin, dark blue,
+        dotted (or dashed) lines.
+        """
+    )
 
     parser.add_argument("models", metavar="model", nargs="+",
                         choices=MODEL_CHOICES,
