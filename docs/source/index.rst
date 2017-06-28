@@ -15,7 +15,6 @@ TODO
 
 1. figure out how to do verbatim / code style in rst and use it below
 2. fix `pyviability` examples
-3. fix pyviability `setup.py`
 
 Introduction
 ------------
