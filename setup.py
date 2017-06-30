@@ -36,7 +36,8 @@ setup(name="pyviability",
           "numpy>=1.11.0",
           "numba>=0.28.1",
           "scipy>=0.17.0",
-          "matplotlib>=1.5.1",
+          "matplotlib>=1.5.1", # for plotting the examples only
+          "pillow>=4.1.1",     # for saving the example plots only
           "argcomplete>=1.0.0",
       ],
       zip_safe=False)
