@@ -23,9 +23,7 @@ The library was developped during the work on [2] and is in a very preliminary s
 
 [2] https://arxiv.org/abs/1706.04542
 
-Find the source here_.
-
-.. _here: https://github.com/timkittel/PyViability
+Find the source on https://github.com/timkittel/PyViability .
 
 Setup
 -----
