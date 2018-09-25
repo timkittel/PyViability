@@ -1,0 +1,3 @@
+include pyviability/colors.soc
+include colors.soc
+include pyviability/*.soc
