@@ -24,7 +24,7 @@ if sys.version_info < required_python_version:
 
 
 setup(name="pyviability",
-      version="0.2.0",
+      version="0.2.1",
       description="a library for computation of viabilty sets and TSM sets",
       url="https://timkittel.github.io/PyViability/",
       author="Tim Kittel",
@@ -40,6 +40,9 @@ setup(name="pyviability",
           "pillow>=4.1.1",     # for saving the example plots only
           "argcomplete>=1.0.0",
       ],
+      package_data={
+          'colorfile': ['colors.soc'],
+      },
       zip_safe=False)
 
 

@@ -14,6 +14,8 @@ the topology of sustainable management
   <draw:color draw:name="Shelters (upstream)" draw:color="#99ff99"/> <!-- = Green 1 -->
   <draw:color draw:name="Glades (upstream)" draw:color="#66ff66"/> <!-- = Green 2 -->
   <draw:color draw:name="Lakes (upstream)" draw:color="#00cc00"/> <!-- = Green 3 -->
+  <draw:color draw:name="Time-unlimited Lakes (upstream)" draw:color="#00cc00"/> <!-- = Green 3 -->
+  <draw:color draw:name="Time-limited Lakes (upstream)" draw:color="#00e800"/> 
   <draw:color draw:name="Sunny Upstream (remaining)" draw:color="#009900"/> <!-- = Green 4 -->
   <draw:color draw:name="Dark Upstream" draw:color="#b2b2b2"/> <!-- = Gray 4 -->
   
